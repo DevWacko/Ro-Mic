@@ -2,10 +2,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local Packages = ReplicatedStorage.Packages
+local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
-local Knit = require(Packages.Knit)
+local Knit = require(ExPackages.Knit)
 
 -- Service --
 local SERVICE_NAME = Knit.CreateService { Name = "SERVICE_NAME" }

@@ -8,8 +8,8 @@
             "Source": {
                 "$path": "src/ReplicatedStorage"
             },
-            "ExPackages": {
-                "$path": "ExPackages"
+			"ExPackages": {
+                "$path": "Packages"
             }
         },
         "ServerScriptService": {
