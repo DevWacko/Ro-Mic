@@ -10,11 +10,20 @@ local ExPackages = ReplicatedStorage.ExPackages
 local PlayerDataTemplate = require(ServerStorage.Source.Data.PlayerDataTemplate)
 
 local Signal = require(ExPackages.Signal)
-local Trove = require(ExPackages.Trove)
 local Knit = require(ExPackages.Knit)
 
+local ProfileStore = require(script.ProfileStore)
+
+local ModuledScriptHandler = require(ReplicatedStorage.Source.Classes.ModuledScriptHandler)
+
 -- Service --
-local PlayerDataService = Knit.CreateService { Name = "PlayerDataService" }
+local PlayerDataService = Knit.CreateService {
+	Name = "PlayerDataService",
+	Client = {
+		ProfileLoaded = Knit.CreateSignal(),
+	}
+}
+PlayerDataService.PlayerProfileLoaded = Signal.new()
 PlayerDataService.ValueChanged = Signal.new()
 
 -- Types --
@@ -23,21 +32,20 @@ type Self = typeof(PlayerDataService)
 -- Local --
 local playersData: { [Player]: { [string]: any } } = {}
 
-local function warning(i: number, player: Player, ...)
+local function warning(key: string, player: Player, ...)
 	local data = {...}
-	if i == 1 then
-		warn(player, "'s has failed to load, or the player doesnt exist.")
-	elseif i == 2 then
+	if key == "Key" then
 		warn(`Failed to find the key: {data[1]} inside of `, player, "'s data")
-	elseif i == 3 then
+	elseif key == "ValueType" then
 		warn(`Failed to set a {data[1]} type to a {data[2]} type. Called for the player: `, player)
+	elseif key == "Profile" then
+		warn(player, "'s profile data has not loaded, or that player doesnt exist.")
 	end
 end
 
 local function getPlayerData(player: Player)
 	local playerData = playersData[player]
 	if not playerData then
-		warning(1, player)
 		return
 	end
 	return playerData
@@ -45,7 +53,7 @@ end
 
 local function validKey(player: Player, key: string)
 	if playersData[player][key] == nil then
-		warning(2, player, key)
+		warning("Key", player, key)
 		return false
 	end
 	return true
@@ -57,11 +65,15 @@ local function validValueMatch(player: Player, key: string, value: number)
 	end
 	local requiredType, settingType = typeof(playersData[player][key]), typeof(value)
 	if settingType ~= requiredType then
-		warning(3, player, settingType, requiredType)
+		warning("ValueType", player, settingType, requiredType)
 		return false
 	end
 	return true
 end
+
+-- local function validProfile(player: Player)
+-- 	return PlayerDataService.profiles[player] ~= nil
+-- end
 
 function PlayerDataService:ObserveValue(player: Player, key: string, callback: (newValue: any) -> ()): RBXScriptConnection
 	return self.ValueChanged:Connect(function(otherPlayer: Player, changedKey: string, changedValue: any)
@@ -82,6 +94,13 @@ function PlayerDataService:SetValue(player: Player, key: string, value: any)
 		return
 	end
 	
+	local profiles = PlayerDataService.profiles
+	if not profiles[player] then
+		warning("Profile", player)
+		return
+	end
+	
+	profiles[player].Data[key] = value
 	playerData[key] = value
 	self.ValueChanged:Fire(player, key, playerData[key])
 end
@@ -94,6 +113,9 @@ function PlayerDataService:GetValue(player: Player, key: string)
 end
 
 function PlayerDataService:UpdateValue(player: Player, key: string, updateCallback: (currentValue: any) -> ())
+	if not getPlayerData(player) then
+		return
+	end
 	if not validKey(player, key) then
 		return
 	end
@@ -106,19 +128,69 @@ function PlayerDataService:UpdateValue(player: Player, key: string, updateCallba
 	self:SetValue(player, key, updatedValue)
 end
 
+local function setupPlayerProfile(player: Player)
+	local profile = PlayerDataService.playerStore:StartSessionAsync(`{player.UserId}`, {
+		Cancel = function()
+			return player.Parent ~= Players
+		end,
+	})
+	if profile ~= nil then
+		profile:AddUserId(player.UserId) -- GDPR compliance
+		profile:Reconcile() -- Fill in missing variables from PROFILE_TEMPLATE (optional)
+		
+		profile.OnSessionEnd:Connect(function()
+			PlayerDataService.profiles[player] = nil
+			player:Kick(`Profile session end - Please rejoin`)
+		end)
+		if player.Parent == Players then
+			PlayerDataService.profiles[player] = profile
+			print(`Profile loaded for {player.DisplayName}!`)
+			
+			for key, value in PlayerDataService.profiles[player].Data do
+				PlayerDataService:SetValue(player, key, value)
+			end
+			
+			PlayerDataService.PlayerProfileLoaded:Fire(player)
+			PlayerDataService.Client.ProfileLoaded:Fire(player)
+		else
+			profile:EndSession()
+		end
+	else
+		-- This condition should only happen when the Roblox server is shutting down
+		player:Kick(`Profile load fail - Please rejoin`)
+	end
+end
+
 local function onPlayerAdded(player: Player)
 	local newPlayerData = {}
 	for key, value in PlayerDataTemplate.Values do
 		newPlayerData[key] = value
 	end
 	playersData[player] = newPlayerData
+	
+	setupPlayerProfile(player)
 end
 
 local function onPlayerRemoving(player: Player)
+	local profile = PlayerDataService.profiles[player]
+	if profile ~= nil then
+		profile:EndSession()
+	end
+	
+	PlayerDataService.modulesHandler:CallModulesFunction("playerRemoving", player)
+	
 	playersData[player] = nil
 end
 
 function PlayerDataService:KnitInit()
+	self.modulesHandler = ModuledScriptHandler.new(script.Modules)
+	self.PlayerProfileLoaded:Connect(function(player: Player)
+		self.modulesHandler:CallModulesFunction("playerProfileLoaded", player)
+	end)
+	
+	self.playerStore = ProfileStore.New("PlayerStore", PlayerDataTemplate.Values)
+	self.profiles = {} :: {[Player]: typeof(self.PlayerStore:StartSessionAsync())}
+	
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 	for _, player in Players:GetPlayers() do

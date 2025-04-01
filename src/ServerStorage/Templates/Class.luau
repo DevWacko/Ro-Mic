@@ -13,6 +13,8 @@ local peek = Fusion.peek
 -- Class --
 local CLASS_NAME = {}
 CLASS_NAME.__index = CLASS_NAME
+
+-- Types --
 type UsedAs = Fusion.UsedAs
 type Self = typeof(CLASS_NAME)
 export type Props = {}
