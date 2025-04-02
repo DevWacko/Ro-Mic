@@ -3,14 +3,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
+-- Packages --
+local ExPackages = ReplicatedStorage.ExPackages
+
 -- Modules --
-local Data = require(ServerStorage.Source.Data.Booths)
+local Fusion = require(ExPackages.Fusion)
+local Knit = require(ExPackages.Knit)
 
-local playerThumbnail = Data.PlayerThumbnail
-
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
-
-local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek
 
 -- Main Module --
@@ -18,78 +17,93 @@ local Booths = {
 	Tag = "Booth",
 }
 
--- Types --
-type BoothModel = Model
-type BoothInteractionPart = Part & { Claim: ProximityPrompt }
-type DescriptionPart = Part & {
-	SurfaceGui: SurfaceGui & {
-		PlayerAvatar: ImageLabel,
-		Description: TextLabel,
-	},
-}
-type StandOwnerPart = Part & {
-	SurfaceGui: SurfaceGui & { TextLabel: TextLabel },
-}
-
 -- Local --
-local boothScopes: { [Model]: Fusion.Scope } = {}
+local service
 
 local boothsData: { [Model]: {
+	scope: Fusion.scope,
 	owner: Fusion.Value<Player?>,
 } } = {}
 
-Booths.init = function()
-	
-end
-
-local function onBoothInteracted(player: Player, booth: Model)
-	local boothData = boothsData[booth]
-	
-	local owner = peek(boothData.owner)
-	if owner == player then
-		
-	elseif owner == nil then
-		boothData.owner:set(player)
+local function warning(key: string, ...)
+	local data = { ... }
+	if key == "BoothData" then
+		warn("There was no booth data for the booth: ", data[1])
 	end
 end
 
+local function dataFromBooth(booth: Model)
+	local boothData = boothsData[booth]
+	if not boothData then
+		warning("BoothData", booth)
+		return
+	end
+	return boothData
+end
+
+local function claimAttempt(player: Player, booth: Model)
+	local data = dataFromBooth(booth)
+	if not data then
+		return
+	end
+	
+	local owner = data.owner
+	if peek(owner) then
+		return
+	end
+	owner:set(player)
+	
+	return true
+end
+
+local function editAttempt(player: Player, booth: Model)
+	local data = dataFromBooth(booth)
+	if not data then
+		return
+	end
+	
+	local owner = data.owner
+	if peek(owner) ~= player then
+		return
+	end
+	
+	return true
+end
+
+Booths.sentInteractAttempt = function(player: Player, interaction: string, booth: Model)
+	if not interaction or typeof(interaction) ~= "string" then
+		return
+	end
+	if not booth or not booth:HasTag(Booths.Tag) then
+		return
+	end
+	
+	if interaction == "Claim" then
+		return claimAttempt(player, booth)
+	elseif interaction == "Edit" then
+		return editAttempt(player, booth)
+	end
+end
+
+Booths.init = function()
+	service = Knit.GetService("InteractingService")
+end
+
 Booths.taggedObjectAdded = function(taggedObject: BoothModel)
-	local boothInteractionPart: BoothInteractionPart = taggedObject:WaitForChild("BoothInteraction")
-	local descriptionPart: DescriptionPart = taggedObject:WaitForChild("Description")
-	local standOwnerPart: StandOwnerPart = taggedObject:WaitForChild("StandOwner")
-	
-	local scope: Fusion.Scope = Fusion:scoped()
-	
+	local scope = Fusion:scoped()
 	local owner = scope:Value(nil)
-	scope:Observer(owner):onBind(function()
-		local newOwner: Player? = peek(owner)
-		standOwnerPart.SurfaceGui.TextLabel.Text = newOwner and newOwner.Name or Data.Defaults.OWNER_LABEL
-		
-		local profileImage: string?
-		if newOwner then
-			profileImage = Players:GetUserThumbnailAsync(newOwner.UserId, playerThumbnail.TYPE, playerThumbnail.SIZE)
-		end
-		descriptionPart.SurfaceGui.PlayerAvatar.Image = profileImage or ""
-	end)
 	
 	boothsData[taggedObject] = {
+		scope = scope,
 		owner = owner,
 	}
-	
-	scope:Hydrate(boothInteractionPart:FindFirstChild("Claim")) {
-		[OnEvent("Triggered")] = function(player)
-			onBoothInteracted(player, taggedObject)
-		end
-	}
-	
-	boothScopes[taggedObject] = scope
 end
 
 Booths.taggedObjectRemoved = function(taggedObject: BoothModel)
-	local scope = boothScopes[taggedObject]
-	if scope then
-		scope:doCleanup()
-		boothScopes[taggedObject] = nil
+	local boothData = boothsData[taggedObject]
+	if boothData then
+		boothData.scope:doCleanup()
+		boothsData[taggedObject] = nil
 	end
 end
 

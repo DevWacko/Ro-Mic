@@ -10,10 +10,10 @@ local MODULE_NAME = {
 }
 
 -- Local --
-local service
+local controller
 
 MODULE_NAME.init = function()
-	service = Knit.GetService("InteractingService")
+	controller = Knit.GetController("InteractingController")
 end
 
 MODULE_NAME.taggedObjectAdded = function(taggedObject: Instance)

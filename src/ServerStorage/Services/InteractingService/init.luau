@@ -7,17 +7,52 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
+local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)
 
 local ModuledScriptHandler =  require(ReplicatedStorage.Source.Classes.ModuledScriptHandler)
 
 -- Service --
-local InteractingService = Knit.CreateService { Name = "InteractingService" }
+local InteractingService = Knit.CreateService {
+	Name = "InteractingService",
+	Client = {
+		Interaction = Knit.CreateSignal(),
+	}
+}
+InteractingService.InteractionAttemptSent = Signal.new()
 
 -- Types --
 type Self = typeof(InteractingService)
 
--- Local --
+function InteractingService.Client:InteractAttempt(...)
+	return self.Server:InteractAttempt(...)
+end
+
+function InteractingService:InteractAttempt(...)
+	local data = { ... }
+	
+	local key = data[2]
+	if not key or type(key) ~= "string" then
+		return
+	end
+	table.remove(data, 2)
+	
+	for modKey, mod in self.modulesHandler.requiredModules do
+		if modKey ~= key then
+			continue
+		end
+		return mod.sentInteractAttempt(table.unpack(data))
+	end
+end
+
+function InteractingService:ObserveInteractAttempt(key: string, handler: (any) -> (any))
+	return self.InteractionAttemptSent:Connect(function(player: Player, sentKey: string, ...)
+		if sentKey ~= key then
+			return
+		end
+		handler(player, ...)
+	end)
+end
 
 function InteractingService:KnitInit()
 	self.modulesHandler = ModuledScriptHandler.new(script.Modules)
