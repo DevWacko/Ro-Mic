@@ -7,7 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
-local PlayerDataTemplate = require(ServerStorage.Source.Data.PlayerDataTemplate)
+local PlayerDataTemplate = require(ServerStorage.Source.Data.Player.PlayerDataTemplate)
 
 local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)

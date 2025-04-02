@@ -37,6 +37,7 @@ type StandOwnerPart = Part & {
 -- Local --
 local player = Players.LocalPlayer
 
+local menuController
 local controller
 
 local boothScopes: { [Model]: Fusion.Scope } = {}
@@ -48,6 +49,7 @@ local boothsData: { [Model]: {
 } } = {}
 
 Booths.init = function()
+	menuController = Knit.GetController("MenuController")
 	controller = Knit.GetController("InteractingController")
 end
 
@@ -64,6 +66,7 @@ local function onBoothInteracted(booth: Model)
 				return
 			end
 			boothsData[booth].editing:set(true)
+			menuController:SetMenu(player.PlayerGui:WaitForChild("TextBooth"))
 		end)
 	elseif not owner then
 		controller.InteractingService:InteractAttempt("Booths", "Claim", booth):andThen(function(success: boolean)
@@ -96,7 +99,7 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 	
 	local editing = scope:Value(false)
 	scope:Observer(editing):onBind(function()
-		print("EDITING", peek(editing))
+		--print("EDITING", peek(editing))
 	end)
 	
 	local function setOwner()
