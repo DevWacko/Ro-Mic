@@ -2,19 +2,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Class --
-local ModuledScriptHandler = {}
-ModuledScriptHandler.__index = ModuledScriptHandler
+local ModuleHandler = {}
+ModuleHandler.__index = ModuleHandler
 
 -- Types --
-type Self = typeof(ModuledScriptHandler)
+type Self = typeof(ModuleHandler)
 
-function ModuledScriptHandler.new(modulesContainer: Instances)
-	local self = setmetatable({}, ModuledScriptHandler)
+function ModuleHandler.new(modulesContainer: Instances)
+	local self = setmetatable({}, ModuleHandler)
 	self:init(modulesContainer)
 	return self
 end
 
-function ModuledScriptHandler:init(modulesContainer: Instance)
+function ModuleHandler:init(modulesContainer: Instance)
 	local requiredModules: { [string]: { any } } = {}
 	for _, module: ModuleScript in modulesContainer:GetChildren() do
 		requiredModules[module.Name] = require(module)
@@ -24,7 +24,7 @@ function ModuledScriptHandler:init(modulesContainer: Instance)
 	self:CallModulesFunction("init")
 end
 
-function ModuledScriptHandler:CallModulesFunction(funcKey: string, ...)
+function ModuleHandler:CallModulesFunction(funcKey: string, ...)
 	for _, mod in self.requiredModules do
 		local func = mod[funcKey]
 		if func then
@@ -33,9 +33,9 @@ function ModuledScriptHandler:CallModulesFunction(funcKey: string, ...)
 	end
 end
 
-function ModuledScriptHandler:Destroy()
-	ModuledScriptHandler:CallModulesFunction("cleanup")
+function ModuleHandler:Destroy()
+	ModuleHandler:CallModulesFunction("cleanup")
 	self.requiredModules = nil
 end
 
-return ModuledScriptHandler
+return ModuleHandler

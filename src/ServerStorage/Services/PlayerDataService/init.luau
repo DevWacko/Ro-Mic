@@ -14,17 +14,18 @@ local Knit = require(ExPackages.Knit)
 
 local ProfileStore = require(script.ProfileStore)
 
-local ModuledScriptHandler = require(ReplicatedStorage.Source.Classes.ModuledScriptHandler)
+local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Service --
 local PlayerDataService = Knit.CreateService {
 	Name = "PlayerDataService",
 	Client = {
 		ProfileLoaded = Knit.CreateSignal(),
+		ValueChanged = Knit.CreateSignal(),
 	}
 }
 PlayerDataService.PlayerProfileLoaded = Signal.new()
-PlayerDataService.ValueChanged = Signal.new()
+PlayerDataService.PlayerValueChanged = Signal.new()
 
 -- Types --
 type Self = typeof(PlayerDataService)
@@ -76,7 +77,7 @@ end
 -- end
 
 function PlayerDataService:ObserveValue(player: Player, key: string, callback: (newValue: any) -> ()): RBXScriptConnection
-	return self.ValueChanged:Connect(function(otherPlayer: Player, changedKey: string, changedValue: any)
+	return self.PlayerValueChanged:Connect(function(otherPlayer: Player, changedKey: string, changedValue: any)
 		if otherPlayer ~= player or changedKey ~= key then
 			return
 		end
@@ -102,7 +103,9 @@ function PlayerDataService:SetValue(player: Player, key: string, value: any)
 	
 	profiles[player].Data[key] = value
 	playerData[key] = value
-	self.ValueChanged:Fire(player, key, playerData[key])
+	
+	self.PlayerValueChanged:Fire(player, key, playerData[key])
+	self.Client.ValueChanged:Fire(player, key, playerData[key])
 end
 
 function PlayerDataService:GetValue(player: Player, key: string)
@@ -183,7 +186,7 @@ local function onPlayerRemoving(player: Player)
 end
 
 function PlayerDataService:KnitInit()
-	self.modulesHandler = ModuledScriptHandler.new(script.Modules)
+	self.modulesHandler = ModuleHandler.new(script.Modules)
 	self.PlayerProfileLoaded:Connect(function(player: Player)
 		self.modulesHandler:CallModulesFunction("playerProfileLoaded", player)
 	end)

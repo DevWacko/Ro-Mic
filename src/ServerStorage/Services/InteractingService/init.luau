@@ -10,7 +10,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)
 
-local ModuledScriptHandler =  require(ReplicatedStorage.Source.Classes.ModuledScriptHandler)
+local ModuleHandler =  require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Service --
 local InteractingService = Knit.CreateService {
@@ -55,7 +55,7 @@ function InteractingService:ObserveInteractAttempt(key: string, handler: (any) -
 end
 
 function InteractingService:KnitInit()
-	self.modulesHandler = ModuledScriptHandler.new(script.Modules)
+	self.modulesHandler = ModuleHandler.new(script.Modules)
 	for name, module: { Tag: string } in self.modulesHandler.requiredModules do
 		if name == "Module" then
 			continue

@@ -16,7 +16,12 @@ local Children = Fusion.Children
 local peek = Fusion.peek
 
 -- Service --
-local RagdollService = Knit.CreateService { Name = "RagdollService" }
+local RagdollService = Knit.CreateService {
+	Name = "RagdollService",
+	Client = {
+		RagdollEnabledChanged = Knit.CreateSignal(),
+	},
+}
 
 -- Types --
 type Self = typeof(RagdollService)
@@ -70,15 +75,24 @@ local function limbHitbox(scope: Fusion.Scope, limb: Part)
 	return collisionPart
 end
 
-local function motor6DBallsocket(scope: Fusion.Scope, limb: Part, motor6D: Motor6D)
-	
+function RagdollService.Client:SetRagdollEnabledAttempt(player: Player, enabled: boolean)
+	return self.Server:SetRagdollEnabledAttempt(player, enabled)
 end
 
-function RagdollService:SetRagdollEnabledForCharacter(char: Model, enabled: boolean)
+function RagdollService:SetRagdollEnabledAttempt(player: Player, enabled: boolean)
+	local char = player.Character
+	if not char  then
+		return
+	end
+	
 	local charData = charsData[char]
 	if charData then
 		charData.enabled:set(enabled)
 	end
+	
+	self.Client.RagdollEnabledChanged:Fire(Players:GetPlayerFromCharacter(char), enabled)
+	
+	return true
 end
 
 local function manageRagdollContainers(scope: Fusion.Scope, tempScope: Fusion.Scope, enabled: Fusion.Value<boolean>, char: Model)
@@ -102,9 +116,9 @@ local function manageRagdollContainers(scope: Fusion.Scope, tempScope: Fusion.Sc
 		local root = char.PrimaryPart
 		local lowerTorso = char.LowerTorso
 		if root then
-			root.Massless = enabled
+			root.Massless = not enabled
 			root.CanCollide = not enabled
-			root:SetNetworkOwner(enabled and nil or Players:GetPlayerFromCharacter(char))
+			--root:SetNetworkOwner(enabled and nil or Players:GetPlayerFromCharacter(char))
 			
 			if lowerTorso and isEnabled then
 				tempScope:New "WeldConstraint" {
@@ -219,18 +233,14 @@ local function onCharacterAdded(char: Model)
 		end
 		char.Head.Neck.Enabled = not isEnabled
 		
-		if isEnabled then
+		if not isEnabled then
+			print("HERE")
 			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-		elseif not isEnabled then
+			char.PrimaryPart.Orientation = Vector3.new(0,char.PrimaryPart.Orientation.Y,0)
+			--char.PrimaryPart:PivotTo(char:GetPivot() * CFrame.Angles(char.HumanoidRootPart.Orientation.Y))
 			tempScope:doCleanup()
 		end
-	end)
-	
-	task.delay(5, function()
-		RagdollService:SetRagdollEnabledForCharacter(char, true)
-		task.wait(3)
-		RagdollService:SetRagdollEnabledForCharacter(char, false)
 	end)
 end
 

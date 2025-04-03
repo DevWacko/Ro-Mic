@@ -8,7 +8,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 -- Modules --
 local Knit = require(ExPackages.Knit)
 
-local ModuledScriptHandler = require(ReplicatedStorage.Source.Classes.ModuledScriptHandler)
+local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Controller
 local KeybindController = Knit.CreateController { Name = "KeybindController" }
@@ -17,7 +17,7 @@ local KeybindController = Knit.CreateController { Name = "KeybindController" }
 type Self = typeof(KeybindController)
 
 function KeybindController:KnitInit()
-	local modulesHandler = ModuledScriptHandler.new(script.Keybinds)
+	local modulesHandler = ModuleHandler.new(script.Keybinds)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		for _, keybindMod in modulesHandler.requiredModules do
 			if not table.find(keybindMod.Keys, input.KeyCode) then
@@ -31,7 +31,7 @@ function KeybindController:KnitInit()
 			if not table.find(keybindMod.Keys, input.KeyCode) then
 				continue
 			end
-			keybindMod.InputEnded(input, processed)
+			keybindMod.inputEnded(input, processed)
 		end
 	end)
 end
