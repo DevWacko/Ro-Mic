@@ -1,6 +1,7 @@
 -- Services --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Containers --
@@ -224,8 +225,6 @@ local function onCharacterAdded(char: Model)
 		hum.BreakJointsOnDeath = not isEnabled
 		hum.RequiresNeck = not isEnabled
 		hum.AutoRotate = not isEnabled
-		hum.EvaluateStateMachine = not isEnabled
-		
 		hum.PlatformStand = isEnabled
 		
 		for _, data in motor6Ds do
@@ -234,7 +233,6 @@ local function onCharacterAdded(char: Model)
 		char.Head.Neck.Enabled = not isEnabled
 		
 		if not isEnabled then
-			print("HERE")
 			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
 			char.PrimaryPart.Orientation = Vector3.new(0,char.PrimaryPart.Orientation.Y,0)
