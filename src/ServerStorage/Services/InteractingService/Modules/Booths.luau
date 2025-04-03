@@ -25,6 +25,8 @@ local boothsData: { [Model]: {
 	owner: Fusion.Value<Player?>,
 } } = {}
 
+local playersWithBooth: { [number]: Player } = {}
+
 local function warning(key: string, ...)
 	local data = { ... }
 	if key == "BoothData" then
@@ -46,12 +48,17 @@ local function claimAttempt(player: Player, booth: Model)
 	if not data then
 		return
 	end
+	if table.find(playersWithBooth, player) then
+		return
+	end
 	
 	local owner = data.owner
 	if peek(owner) then
 		return
 	end
 	owner:set(player)
+	
+	table.insert(playersWithBooth, player)
 	
 	return true
 end
@@ -93,6 +100,11 @@ Booths.taggedObjectAdded = function(taggedObject: BoothModel)
 	local scope = Fusion:scoped()
 	local owner = scope:Value(nil)
 	
+	scope:Observer(owner):onChange(function()
+		local newOwner = peek(owner)
+		taggedObject:SetAttribute("Owner", newOwner and newOwner.Name or nil)
+	end)
+	
 	boothsData[taggedObject] = {
 		scope = scope,
 		owner = owner,
@@ -108,6 +120,11 @@ Booths.taggedObjectRemoved = function(taggedObject: BoothModel)
 end
 
 Booths.playerRemoving = function(player: Player)
+	local index = table.find(playersWithBooth, player)
+	if index then
+		table.remove(playersWithBooth, index)
+	end
+	
 	for _, boothData in boothsData do
 		if peek(boothData.owner) ~= player then
 			continue

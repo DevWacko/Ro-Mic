@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local StarterGui = game:GetService("StarterGui")
 
 -- Containers --
 local ExPackages = ReplicatedStorage.ExPackages
@@ -29,39 +30,37 @@ type Self = typeof(RagdollService)
 
 -- Constants --
 local LIMBS = {
-	R15 = {
-		"Head",
+	"Head",
+	
+	"UpperTorso",
+	"LowerTorso",
+	
+	"RightUpperArm",
+	"RightLowerArm",
+	"RightHand",
+	
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"LeftHand",
+	
+	"RightUpperLeg",
+	"RightLowerLeg",
+	"RightFoot",
+	
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"LeftFoot",
+	-- R6 = {
+	-- 	"Head",
 		
-		"UpperTorso",
-		"LowerTorso",
+	-- 	"Torso",
 		
-		"RightUpperArm",
-		"RightLowerArm",
-		"RightHand",
+	-- 	"RightArm",
+	-- 	"RightLeg",
 		
-		"LeftUpperArm",
-		"LeftLowerArm",
-		"LeftHand",
-		
-		"RightUpperLeg",
-		"RightLowerLeg",
-		"RightFoot",
-		
-		"LeftUpperLeg",
-		"LeftLowerLeg",
-		"LeftFoot",
-	},
-	R6 = {
-		"Head",
-		
-		"Torso",
-		
-		"RightArm",
-		"RightLeg",
-		
-		"LeftArm",
-		"LeftLeg",
-	}
+	-- 	"LeftArm",
+	-- 	"LeftLeg",
+	-- }
 }
 
 -- Local --
@@ -70,6 +69,8 @@ local charsData: { [Model]: {
 	enabled: Fusion.Value<boolean>
 } } = {}
 
+local resetDebounces: { [Player]: boolean } = {}
+
 local function limbHitbox(scope: Fusion.Scope, limb: Part)
 	local collisionPart = scope:New "Part" {
 		CFrame = limb:GetPivot(),
@@ -77,7 +78,7 @@ local function limbHitbox(scope: Fusion.Scope, limb: Part)
 		
 		Anchored = false,
 		
-		Transparency = 0.9,
+		Transparency = 1,
 		Material = Enum.Material.Neon,
 		Color = Color3.new(1, 0, 0),
 	}
@@ -87,6 +88,23 @@ local function limbHitbox(scope: Fusion.Scope, limb: Part)
 		Parent = collisionPart
 	}
 	return collisionPart
+end
+
+function RagdollService.Client:ResetAttempt(player: Player)
+	self.Server:ResetAttempt(player)
+end
+
+function RagdollService:ResetAttempt(player: Player)
+	if resetDebounces[player] then
+		return
+	end
+	resetDebounces[player] = true
+	
+	task.delay(Players.RespawnTime, function()
+		player:LoadCharacter()
+		
+		resetDebounces[player] = false
+	end)
 end
 
 function RagdollService.Client:SetRagdollEnabledAttempt(player: Player, enabled: boolean)
@@ -218,8 +236,6 @@ local function onCharacterAdded(char: Model)
 		enabled = enabled,
 	}
 	
-	local hum = char:FindFirstChildWhichIsA("Humanoid")
-	
 	local tempScope: Fusion.Scope = Fusion:scoped()
 	table.insert(scope, tempScope)
 	
@@ -235,9 +251,20 @@ local function onCharacterAdded(char: Model)
 	scope:Observer(enabled):onBind(function()
 		local isEnabled = peek(enabled)
 		
+		local player = Players:GetPlayerFromCharacter(char)
+		local hum = char:FindFirstChildWhichIsA("Humanoid")
+		if char.PrimaryPart then
+			table.insert(tempScope, char.PrimaryPart.AncestryChanged:Connect(function(_, parent)
+				if not parent then -- If the root part is removed, respawn
+					RagdollService:ResetAttempt(player)
+				end
+			end))
+		end
+		
 		hum.BreakJointsOnDeath = not isEnabled
 		hum.RequiresNeck = not isEnabled
 		hum.AutoRotate = not isEnabled
+		
 		hum.PlatformStand = isEnabled
 		
 		for _, data in motor6Ds do
@@ -248,7 +275,7 @@ local function onCharacterAdded(char: Model)
 		if not isEnabled then
 			hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-			char.PrimaryPart.Orientation = Vector3.new(0,char.PrimaryPart.Orientation.Y,0)
+			--char.PrimaryPart.Orientation = Vector3.new(0,char.PrimaryPart.Orientation.Y,0)
 			--char.PrimaryPart:PivotTo(char:GetPivot() * CFrame.Angles(char.HumanoidRootPart.Orientation.Y))
 			tempScope:doCleanup()
 		end
@@ -257,10 +284,15 @@ end
 
 function RagdollService:KnitInit()
 	Players.PlayerAdded:Connect(function(player)
+		resetDebounces[player] = false
+		
 		player.CharacterAdded:Connect(onCharacterAdded)
 		if player.Character then
 			onCharacterAdded(player.Character)
 		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		resetDebounces[player] = nil
 	end)
 end
 

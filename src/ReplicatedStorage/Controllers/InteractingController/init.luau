@@ -1,5 +1,6 @@
 -- Services --
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
@@ -48,6 +49,13 @@ function InteractingController:KnitInit()
 	self.InteractingService = Knit.GetService("InteractingService")
 	self.InteractingService.Interaction:Connect(function(key: string, ...)
 		self.Interacted:Fire(key, ...)
+	end)
+	
+	Players.PlayerAdded:Connect(function(player)
+		self.modulesHandler:CallModulesFunction("playerAdded", player)
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		self.modulesHandler:CallModulesFunction("playerRemoving", player)
 	end)
 end
 

@@ -1,3 +1,4 @@
+-- Main Module --
 local KEYBIND_NAME = {
 	Keys = { Enum.KeyCode.Space }
 }

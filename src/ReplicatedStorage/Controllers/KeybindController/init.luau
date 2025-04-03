@@ -1,4 +1,5 @@
 -- Services --
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
@@ -15,6 +16,9 @@ local KeybindController = Knit.CreateController { Name = "KeybindController" }
 
 -- Types --
 type Self = typeof(KeybindController)
+
+-- Local --
+local player = Players.LocalPlayer
 
 function KeybindController:KnitInit()
 	local modulesHandler = ModuleHandler.new(script.Keybinds)
@@ -33,6 +37,10 @@ function KeybindController:KnitInit()
 			end
 			keybindMod.inputEnded(input, processed)
 		end
+	end)
+	
+	player.CharacterAdded:Connect(function(character)
+		modulesHandler:CallModulesFunction("characterAdded", character)
 	end)
 end
 
