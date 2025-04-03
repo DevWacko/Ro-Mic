@@ -10,6 +10,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 -- Modules --
 local Ragdoll = require(ServerStorage.Source.Data.Character.Ragdoll)
 
+local RagdollPackage = require(ExPackages.Ragdoll)
 local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
@@ -29,26 +30,39 @@ type Self = typeof(RagdollService)
 
 -- Constants --
 local LIMBS = {
-	"Head",
-	
-	"UpperTorso",
-	"LowerTorso",
-	
-	"RightUpperArm",
-	"RightLowerArm",
-	"RightHand",
-	
-	"LeftUpperArm",
-	"LeftLowerArm",
-	"LeftHand",
-	
-	"RightUpperLeg",
-	"RightLowerLeg",
-	"RightFoot",
-	
-	"LeftUpperLeg",
-	"LeftLowerLeg",
-	"LeftFoot",
+	R15 = {
+		"Head",
+		
+		"UpperTorso",
+		"LowerTorso",
+		
+		"RightUpperArm",
+		"RightLowerArm",
+		"RightHand",
+		
+		"LeftUpperArm",
+		"LeftLowerArm",
+		"LeftHand",
+		
+		"RightUpperLeg",
+		"RightLowerLeg",
+		"RightFoot",
+		
+		"LeftUpperLeg",
+		"LeftLowerLeg",
+		"LeftFoot",
+	},
+	R6 = {
+		"Head",
+		
+		"Torso",
+		
+		"RightArm",
+		"RightLeg",
+		
+		"LeftArm",
+		"LeftLeg",
+	}
 }
 
 -- Local --
@@ -243,11 +257,21 @@ local function onCharacterAdded(char: Model)
 end
 
 function RagdollService:KnitInit()
+	--[[
 	Players.PlayerAdded:Connect(function(player)
 		player.CharacterAdded:Connect(onCharacterAdded)
 		if player.Character then
 			onCharacterAdded(player.Character)
 		end
+	end)
+	]]
+	
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(char)
+			task.delay(15, function()
+				RagdollPackage.setup(char)
+			end)
+		end)
 	end)
 end
 
