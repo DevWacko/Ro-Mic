@@ -3,6 +3,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 -- Containers --
 local ExPackages = ReplicatedStorage.ExPackages
@@ -50,6 +51,10 @@ Ragdoll.init = function()
 		
 		hum:ChangeState(if ragdolling then Enum.HumanoidStateType.Physics else Enum.HumanoidStateType.GettingUp)
 	end)
+	
+	if UserInputService.KeyboardEnabled then
+		return
+	end
 	
 	local actionName = "Ragdoll"
 	local function handleAction(actionName, inputState, _inputObject)

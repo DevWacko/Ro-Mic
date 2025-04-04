@@ -2,6 +2,7 @@
 local ContentProvider = game:GetService("ContentProvider")
 local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 -- Modules --
 local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
@@ -28,6 +29,10 @@ Gravity.init = function()
 		end
 		workspace.Gravity = peek(floating) and 0 or gravity
 	end)
+	
+	if UserInputService.KeyboardEnabled then
+		return
+	end
 	
 	local actionName = "Float"
 	local function handleAction(actionName, inputState, _inputObject)
