@@ -77,18 +77,37 @@ local function editAttempt(player: Player, booth: Model)
 	return true
 end
 
+local function unclaimAttempt(player: Player)
+	local index = table.find(playersWithBooth, player)
+	if not index then
+		return
+	end
+	
+	for _, boothData in boothsData do
+		local owner = boothData.owner
+		if peek(owner) ~= player then
+			continue
+		end
+		owner:set(nil)
+		
+		table.remove(playersWithBooth, index)
+		
+		return true
+	end
+end
+
 Booths.sentInteractAttempt = function(player: Player, interaction: string, booth: Model)
 	if not interaction or typeof(interaction) ~= "string" then
 		return
 	end
-	if not booth or not booth:HasTag(Booths.Tag) then
-		return
-	end
+	local validBooth = booth and booth:HasTag(Booths.Tag)
 	
-	if interaction == "Claim" then
+	if interaction == "Claim" and validBooth then
 		return claimAttempt(player, booth)
-	elseif interaction == "Edit" then
+	elseif interaction == "Edit" and validBooth then
 		return editAttempt(player, booth)
+	elseif interaction == "Unclaim" then
+		return unclaimAttempt(player)
 	end
 end
 

@@ -44,13 +44,21 @@ local boothScopes: { [Model]: Fusion.Scope } = {}
 
 local boothsData: { [Model]: {
 	scope: Fusion.Scope,
-	owner: Fusion.Value<Player?>,
-	editing: Fusion.Value<boolean>,
+	owner: Fusion.Value<Player?>
 } } = {}
+
+local mainScope = Fusion:scoped()
+local editing: Fusion.Value<boolean> = mainScope:Value(false)
 
 Booths.init = function()
 	menuController = Knit.GetController("MenuController")
 	controller = Knit.GetController("InteractingController")
+	
+	controller:ObserveInteraction("Booths", function(interaction: string)
+		if interaction == "CancelEdit" then
+			editing:set(false)
+		end
+	end)
 end
 
 local function onBoothInteracted(booth: Model)
@@ -65,7 +73,7 @@ local function onBoothInteracted(booth: Model)
 			if not success then
 				return
 			end
-			boothsData[booth].editing:set(true)
+			editing:set(true)
 			menuController:SetMenu(player.PlayerGui:WaitForChild("TextBooth"))
 		end)
 	elseif not owner then
@@ -97,11 +105,6 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 		descriptionPart.SurfaceGui.PlayerAvatar.Image = profileImage or ""
 	end)
 	
-	local editing = scope:Value(false)
-	scope:Observer(editing):onBind(function()
-		--print("EDITING", peek(editing))
-	end)
-	
 	local function setOwner()
 		local ownerName = taggedObject:GetAttribute("Owner")
 		owner:set(ownerName and Players:FindFirstChild(ownerName) or nil)
@@ -114,7 +117,6 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 	boothsData[taggedObject] = {
 		scope = scope,
 		owner = owner,
-		editing = editing,
 	}
 	
 	scope:Hydrate(ReplicatedStorage.Assets.Booths.Claim:Clone()) {

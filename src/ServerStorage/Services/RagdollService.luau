@@ -101,6 +101,9 @@ function RagdollService:ResetAttempt(player: Player)
 	resetDebounces[player] = true
 	
 	task.delay(Players.RespawnTime, function()
+		if not player then
+			return
+		end
 		player:LoadCharacter()
 		
 		resetDebounces[player] = false
@@ -150,7 +153,6 @@ local function manageRagdollContainers(scope: Fusion.Scope, tempScope: Fusion.Sc
 		if root then
 			root.Massless = not enabled
 			root.CanCollide = not enabled
-			--root:SetNetworkOwner(enabled and nil or Players:GetPlayerFromCharacter(char))
 			
 			if lowerTorso and isEnabled then
 				tempScope:New "WeldConstraint" {
@@ -210,9 +212,9 @@ local function manageRagdollContainers(scope: Fusion.Scope, tempScope: Fusion.Sc
 									LimitsEnabled = true,
 									UpperAngle = weldData.UpperAngle or defaults.UpperAngle,
 									
-									TwistLimitsEnabled = true,
-									TwistLowerAngle = weldData.TwistLowerAngle or defaults.TwistLowerAngle,
-									TwistUpperAngle = weldData.TwistUpperAngle or defaults.TwistUpperAngle,
+									TwistLimitsEnabled = weldData.TwistLowerAngl ~= nil or weldData.TwistUpperAngle ~= nil,
+									TwistLowerAngle = weldData.TwistLowerAngle,
+									TwistUpperAngle = weldData.TwistUpperAngle,
 									
 									Parent = attachments[0].Parent,
 								}
@@ -221,6 +223,10 @@ local function manageRagdollContainers(scope: Fusion.Scope, tempScope: Fusion.Sc
 					},
 				}
 			}
+		else
+			if root:IsDescendantOf(workspace) then
+				root:SetNetworkOwner(nil)
+			end
 		end
 	end)
 	

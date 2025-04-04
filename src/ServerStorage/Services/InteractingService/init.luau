@@ -28,20 +28,15 @@ function InteractingService.Client:InteractAttempt(...)
 	return self.Server:InteractAttempt(...)
 end
 
-function InteractingService:InteractAttempt(...)
-	local data = { ... }
-	
-	local key = data[2]
+function InteractingService:InteractAttempt(player: Player, key: string, ...)
 	if not key or type(key) ~= "string" then
 		return
 	end
-	table.remove(data, 2)
-	
 	for modKey, mod in self.modulesHandler.requiredModules do
 		if modKey ~= key then
 			continue
 		end
-		return mod.sentInteractAttempt(table.unpack(data))
+		return mod.sentInteractAttempt(player, ...)
 	end
 end
 
@@ -61,15 +56,24 @@ function InteractingService:KnitInit()
 			continue
 		end
 		
+		local function added(taggedObject: Instance)
+			local taggedObjectAddedFunc = module.taggedObjectAdded
+			if taggedObjectAddedFunc then
+				taggedObjectAddedFunc(taggedObject)
+			end
+		end
+		
 		local tag = module.Tag
-		CollectionService:GetInstanceAddedSignal(tag):Connect(function(taggedObject: Instance)
-			self.modulesHandler:CallModulesFunction("taggedObjectAdded", taggedObject)
-		end)
+		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
 		CollectionService:GetInstanceRemovedSignal(tag):Connect(function(taggedObject: Instance)
+			local taggedObjectRemovedFunc = module.taggedObjectRemoved
+			if taggedObjectRemovedFunc then
+				taggedObjectRemovedFunc(taggedObject)
+			end
 			self.modulesHandler:CallModulesFunction("taggedObjectRemoved", taggedObject)
 		end)
 		for _, taggedObject: Instance in CollectionService:GetTagged(tag) do
-			self.modulesHandler:CallModulesFunction("taggedObjectAdded", taggedObject)
+			added(taggedObject)
 		end
 	end
 	

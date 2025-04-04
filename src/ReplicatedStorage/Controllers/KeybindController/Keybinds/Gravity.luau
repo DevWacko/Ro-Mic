@@ -27,7 +27,7 @@ Gravity.init = function()
 		if not char then
 			return
 		end
-		workspace.Gravity = peek(floating) and 0 or gravity
+		workspace.Gravity = peek(floating) and 1 or gravity
 	end)
 	
 	if UserInputService.KeyboardEnabled then

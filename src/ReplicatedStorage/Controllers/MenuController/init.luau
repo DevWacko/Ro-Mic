@@ -1,5 +1,6 @@
 -- Services --
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
@@ -10,6 +11,8 @@ local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
 local peek = Fusion.peek
+
+local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Controller
 local MenuController = Knit.CreateController { Name = "MenuController" }
@@ -44,14 +47,20 @@ end
 function MenuController:CloseMenu(taggedMenu: ScreenGui)
 	local menuData = menus[taggedMenu]
 	if not menuData then
-		menuData.shown:set(false)
-		if peek(self.currentMenu) == taggedMenu then
-			self.currentMenu:set(nil)
-		end
+		return
+	end
+	menuData.shown:set(false)
+	
+	if peek(self.currentMenu) == taggedMenu then
+		self.currentMenu:set(nil)
 	end
 end
 
 function taggedMenuAdded(taggedMenu: ScreenGui)
+	if not taggedMenu:IsDescendantOf(Players.LocalPlayer) then
+		return
+	end
+	
 	local scope = Fusion:scoped()
 	local shown: Fusion.Value<boolean> = scope:Value(taggedMenu.Enabled)
 	
@@ -63,6 +72,16 @@ function taggedMenuAdded(taggedMenu: ScreenGui)
 		scope = scope,
 		shown = shown,
 	}
+	
+	for _, mod in MenuController.moduleHandler.requiredModules do
+		if mod.MenuName ~= taggedMenu.Name then
+			continue
+		end
+		local menuLoaded = mod.menuLoaded
+		if menuLoaded then
+			menuLoaded(taggedMenu)
+		end
+	end
 end
 
 function taggedMenuRemoved(taggedMenu: ScreenGui)
@@ -74,6 +93,8 @@ function taggedMenuRemoved(taggedMenu: ScreenGui)
 end
 
 function MenuController:KnitInit()
+	self.moduleHandler = ModuleHandler.new(script.Menus)
+	
 	local scope = Fusion:scoped()
 	self.currentMenu = scope:Value(nil) :: Fusion.Value<ScreenGui?>
 	

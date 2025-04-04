@@ -2,9 +2,9 @@ local Ragdoll = {}
 
 Ragdoll.Defaults = {
 	BallSocketConstrains = {
-		UpperAngle = 15,
-		TwistLowerAngle = -45,
-		TwistUpperAngle = 45,
+		UpperAngle = 35,
+		-- TwistLowerAngle = -45,
+		-- TwistUpperAngle = 45,
 	}
 }
 
@@ -16,6 +16,8 @@ Ragdoll.SocketData = {
 	["Neck"] = {
 		A0 = "UpperTorso/NeckRigAttachment",
 		A1 = "Head/NeckRigAttachment",
+		TwistLowerAngle = -15,
+		TwistUpperAngle = 15,
 	},
 	
 	["RightShoulder"] = {
@@ -26,9 +28,9 @@ Ragdoll.SocketData = {
 		A0 = "RightUpperArm/RightElbowRigAttachment",
 		A1 = "RightLowerArm/RightElbowRigAttachment",
 		
-		UpperAngle = 0,
-		TwistLowerAngle = -90,
-		TwistUpperAngle = 0,
+		-- UpperAngle = 0,
+		-- TwistLowerAngle = -90,
+		-- TwistUpperAngle = 0,
 	},
 	["RightWrist"] = {
 		A0 = "RightLowerArm/RightWristRigAttachment",
@@ -43,9 +45,9 @@ Ragdoll.SocketData = {
 		A0 = "LeftUpperArm/LeftElbowRigAttachment",
 		A1 = "LeftLowerArm/LeftElbowRigAttachment",
 		
-		UpperAngle = 0,
-		TwistLowerAngle = 0,
-		TwistUpperAngle = -90,
+		-- UpperAngle = 0,
+		-- TwistLowerAngle = 0,
+		-- TwistUpperAngle = -90,
 	},
 	["LeftWrist"] = {
 		A0 = "LeftLowerArm/LeftWristRigAttachment",
@@ -60,9 +62,9 @@ Ragdoll.SocketData = {
 		A0 = "RightUpperLeg/RightKneeRigAttachment",
 		A1 = "RightLowerLeg/RightKneeRigAttachment",
 		
-		UpperAngle = 0,
-		TwistLowerAngle = 0,
-		TwistUpperAngle = -90,
+		-- UpperAngle = 0,
+		-- TwistLowerAngle = 0,
+		-- TwistUpperAngle = -90,
 	},
 	["RightAnkle"] = {
 		A0 = "RightLowerLeg/RightAnkleRigAttachment",
@@ -77,9 +79,9 @@ Ragdoll.SocketData = {
 		A0 = "LeftUpperLeg/LeftKneeRigAttachment",
 		A1 = "LeftLowerLeg/LeftKneeRigAttachment",
 		
-		UpperAngle = 0,
-		TwistLowerAngle = 0,
-		TwistUpperAngle = -90,
+		-- UpperAngle = 0,
+		-- TwistLowerAngle = 0,
+		-- TwistUpperAngle = -90,
 	},
 	["LeftAnkle"] = {
 		A0 = "LeftLowerLeg/LeftAnkleRigAttachment",

@@ -27,7 +27,10 @@ function KeybindController:KnitInit()
 			if not table.find(keybindMod.Keys, input.KeyCode) then
 				continue
 			end
-			keybindMod.inputStarted(input, processed)
+			local inputStarted = keybindMod.inputStarted
+			if inputStarted then
+				inputStarted(input, processed)
+			end
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input, processed)
@@ -35,7 +38,10 @@ function KeybindController:KnitInit()
 			if not table.find(keybindMod.Keys, input.KeyCode) then
 				continue
 			end
-			keybindMod.inputEnded(input, processed)
+			local inputEnded = keybindMod.inputEnded
+			if inputEnded then
+				inputEnded(input, processed)
+			end
 		end
 	end)
 	
