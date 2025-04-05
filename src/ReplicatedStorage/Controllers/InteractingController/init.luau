@@ -34,15 +34,20 @@ function InteractingController:KnitInit()
 			continue
 		end
 		
+		local function added(taggedObject: Instance)
+			local taggedObjectAdded = module.taggedObjectAdded
+			if taggedObjectAdded then
+				taggedObjectAdded(taggedObject)
+			end
+		end
+		
 		local tag = module.Tag
-		CollectionService:GetInstanceAddedSignal(tag):Connect(function(taggedObject: Instance)
-			self.modulesHandler:CallModulesFunction("taggedObjectAdded", taggedObject)
-		end)
+		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
 		CollectionService:GetInstanceRemovedSignal(tag):Connect(function(taggedObject: Instance)
 			self.modulesHandler:CallModulesFunction("taggedObjectRemoved", taggedObject)
 		end)
 		for _, taggedObject: Instance in CollectionService:GetTagged(tag) do
-			self.modulesHandler:CallModulesFunction("taggedObjectAdded", taggedObject)
+			added(taggedObject)
 		end
 	end
 	
