@@ -1,0 +1,3 @@
+local MessageBoards = {}
+
+return MessageBoards

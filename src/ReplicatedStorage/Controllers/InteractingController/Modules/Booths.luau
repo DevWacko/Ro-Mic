@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
-local Data = require(ReplicatedStorage.Source.Data.Booths)
+local Data = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 
 local playerThumbnail = Data.PlayerThumbnail
 

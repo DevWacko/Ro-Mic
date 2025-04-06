@@ -18,8 +18,20 @@ local service
 
 local scope: Fusion.Scope
 
+local function submitMessageAttempt(position)
+	--service.Interaction:Fire()
+	
+	return true
+end
+
 MessageBoards.init = function()
 	service = Knit.GetService("InteractingService")
+end
+
+MessageBoards.sentInteractAttempt = function(player: Player, interaction: string, ...)
+	if interaction == "SubmitMessageAttempt" then
+		return submitMessageAttempt(...)
+	end
 end
 
 MessageBoards.taggedObjectAdded = function(taggedObject: Instance)

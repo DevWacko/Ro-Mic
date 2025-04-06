@@ -28,6 +28,8 @@ type Self = typeof(TooltipController)
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
+local char: Model?
+
 local camera = workspace.CurrentCamera
 
 local taggedObjects: { [number]: Instance } = {}
@@ -66,13 +68,27 @@ function TooltipController:KnitInit()
 		taggedObjectAdded(taggedObject)
 	end
 	
+	local function charAdded(addedChar: Model)
+		char = addedChar
+	end
+	player.CharacterAdded:Connect(charAdded)
+	if player.Character then
+		charAdded(player.Character)
+	end
+	
 	RunService.RenderStepped:Connect(function()
+		if not char then
+			return
+		end
+		
 		mouseX:set(mouse.X + Tooltip.MOUSE_X_OFFSET)
 		mouseY:set(mouse.Y + Tooltip.MOUSE_Y_OFFSET)
 		
 		raycastParams.FilterDescendantsInstances = { taggedObjects }
 		
 		local ray = camera:ScreenPointToRay(mouse.X, mouse.Y)
+		-- local origin = char:GetPivot().Position
+		-- local direction = mouse.Hit.Position
 		local result: RaycastResult? = workspace:Raycast(ray.Origin, ray.Direction * Tooltip.OBJECT_TOOLTIP_DISTANCE, raycastParams)
 		
 		if not result then
