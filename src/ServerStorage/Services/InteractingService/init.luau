@@ -77,6 +77,9 @@ function InteractingService:KnitInit()
 		end
 	end
 	
+	Players.PlayerAdded:Connect(function(player)
+		self.modulesHandler:CallModulesFunction("playerAdded", player)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		self.modulesHandler:CallModulesFunction("playerRemoving", player)
 	end)

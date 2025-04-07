@@ -67,6 +67,9 @@ Gravity.characterAdded = function(addedChar: Model)
 end
 
 Gravity.inputStarted = function(input: InputObject, gameProcessedEvent: boolean)
+	if gameProcessedEvent then
+		return
+	end
 	floating:set(not peek(floating))
 end
 
