@@ -26,7 +26,7 @@ type Message = {
 	position: Udim2,
 	size: UDim2,
 	
-	text: Fusion.Value<string>,
+	text: string,
 }
 
 -- Local --
