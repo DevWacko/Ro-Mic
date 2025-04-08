@@ -11,6 +11,8 @@ local ExPackages = ReplicatedStorage.ExPackages
 local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
+local MessageBoardsData = require(ReplicatedStorage.Source.Data.Interacting.MessageBoards)
+
 -- Main Module --
 local MessageBoards = {
 	Tag = "MessageBoard",
@@ -82,6 +84,9 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 		return
 	end
 	
+	if string.len(text) <= 0 or string.len(text) >  MessageBoardsData.Gui.Message.MAX_CHARACTERS then
+		return
+	end
 	text = onInputReceived(playerSent, text)
 	
 	messages[boardId][tostring(playerSent.UserId)] = {
@@ -99,6 +104,31 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 	return true
 end
 
+local function clearMessageAttempt(playerSent: Player, boardId: string)
+	if not boardId or typeof(boardId) ~= "string"then
+		return false
+	end
+	
+	local userIdString = tostring(playerSent.UserId)
+	
+	local boardMessages = messages[boardId]
+	if not boardMessages then
+		return false
+	end
+	
+	if not boardMessages[userIdString] then
+		return false
+	end
+	
+	boardMessages[userIdString] = nil
+	
+	for _, player in Players:GetPlayers() do
+		fireNewMessages(player)
+	end
+	
+	return true
+end
+
 MessageBoards.init = function()
 	service = Knit.GetService("InteractingService")
 end
@@ -106,6 +136,8 @@ end
 MessageBoards.sentInteractAttempt = function(player: Player, interaction: string, ...)
 	if interaction == "SubmitMessageAttempt" then
 		return submitMessageAttempt(player, ...)
+	elseif interaction == "ClearMessageAttempt" then
+		return clearMessageAttempt(player, ...)
 	end
 end
 
@@ -115,7 +147,7 @@ end
 
 MessageBoards.playerRemoving = function(player: Player)
 	for _, playerMessages in messages do
-		playerMessages[player] = nil
+		playerMessages[tostring(player.UserId)] = nil
 	end
 	for _, otherPlayer in Players:GetPlayers() do
 		fireNewMessages(otherPlayer)

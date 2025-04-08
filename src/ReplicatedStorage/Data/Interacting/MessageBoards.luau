@@ -2,6 +2,8 @@ local MessageBoards = {}
 
 MessageBoards.Gui = {
 	Message = {
+		MAX_CHARACTERS = 200,
+		
 		TWEEN_INFO = TweenInfo.new(0.1),
 		COLOR_TWEEN_INFO = TweenInfo.new(0.5),
 		

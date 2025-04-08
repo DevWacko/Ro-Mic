@@ -47,6 +47,7 @@ local selectScope: Fusion.Scope = Fusion:scoped()
 
 local boardMessages: Fusion.Value<{ [string]: Fusion.Value<{ [string]: Message }> }> = scope:Value({})
 local boardSurfaceGuis: { [string]: ScreenGui } = {}
+local lastBoardMessages: { [string]: { [string]: Message } } = {}
 
 local selectedSurfaceGui: Fusion.Value<SurfaceGui?> = scope:Value(nil)
 local selectionBox: Fusion.Value<Frame?> = scope:Value(nil)
@@ -59,6 +60,7 @@ local canSubmit: Fusion.Value<boolean> = scope:Value(false)
 local surfaceMousePosition: Fusion.Value<Boolean> = scope:Value(UDim2.new())
 
 local tempScopes: { [Instance]: Fusion.Scope } = {}
+local boardsSubmitted: { [string]: Fusion.Value<boolean> } = {}
 
 local streamingBoardParts: Fusion.Value<{ [string]: Instance }> = scope:Value({})
 
@@ -110,12 +112,27 @@ MessageBoards.init = function()
 	controller:ObserveInteraction("MessageBoards", function(interaction: string, ...)
 		local data = { ... }
 		if interaction == "MessagesChanged" then
+			local userId = tostring(player.UserId)
+			
 			local boardMessagesData = peek(boardMessages)
-			for boardId: string, messageData: { [Player]: Message } in data[1] do
+			for boardId: string, messages: { [string]: Message } in data[1] do
 				if not boardMessagesData[boardId] then
 					continue
 				end
-				boardMessagesData[boardId]:set(messageData)
+				boardMessagesData[boardId]:set(messages)
+				lastBoardMessages[boardId] = messages
+				
+				local hasSubmittedVal = boardsSubmitted[boardId]
+				if not hasSubmittedVal then
+					hasSubmittedVal:set(false)
+					continue
+				end
+				local userMessage = messages[userId]
+				if not userMessage then
+					hasSubmittedVal:set(false)
+					continue
+				end
+				hasSubmittedVal:set(true)
 			end
 		end
 	end)
@@ -193,8 +210,23 @@ MessageBoards.init = function()
 					Brightness = 1,
 					
 					[Children] = {
-						surfaceScope:ForPairs(messages, function(_use: Fusion.Use, messageScope: Fusion.Scope, userId: string, messageData: Message)
-							local bgColor: Fusion.Value<Color3> = messageScope:Value(MessageBoardsData.Gui.Message.CAN_WRITE_COLOR)
+						surfaceScope:ForPairs(messages, function(use: Fusion.Use, messageScope: Fusion.Scope, userId: string, messageData: Message)
+							local isNewMessage = true
+							for lastBoardId, lastMessages in lastBoardMessages do
+								if lastBoardId ~= boardId then
+									continue
+								end
+								for lastUserId, lastMessageData: Message in lastMessages do
+									if lastUserId == userId and lastMessageData.position == messageData.position then
+										isNewMessage = false
+										break
+									end
+								end
+							end
+							
+							local bgColor: Fusion.Value<Color3> = messageScope:Value(
+								isNewMessage and MessageBoardsData.Gui.Message.CAN_WRITE_COLOR or MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR
+							)
 							
 							local text = `<b>{Players:GetPlayerByUserId(tonumber(userId)).Name}:</b> {messageData.text}`
 							local message = messageScope:New "TextLabel" {
@@ -213,8 +245,8 @@ MessageBoards.init = function()
 									messageScope:New "UICorner" { CornerRadius = MessageBoardsData.Gui.Message.CORNER_RADIUS },
 								},
 							}
-							bgColor:set(Color3.new(0.9, 0.9, 0.9))
-							return player, message
+							bgColor:set(MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR)
+							return userId, message
 						end),
 						surfaceScope:New "Frame" {
 							Name = "Backdrop",
@@ -251,7 +283,6 @@ MessageBoards.init = function()
 		end
 	end)
 	
-	
 	mouse.Button1Down:Connect(function()
 		writingScope:doCleanup()
 		writingMessage:set(false)
@@ -259,16 +290,23 @@ MessageBoards.init = function()
 end
 
 MessageBoards.taggedObjectAdded = function(taggedObject: Instance)
+	local boardId = taggedObject:GetAttribute("Id")
+	
 	local newStreamingBoardParts = peek(streamingBoardParts)
-	newStreamingBoardParts[taggedObject:GetAttribute("Id")] = taggedObject
+	newStreamingBoardParts[boardId] = taggedObject
 	streamingBoardParts:set(newStreamingBoardParts)
 	
 	local tempScope = Fusion:scoped()
 	tempScopes[taggedObject] = tempScope
 	
 	local newboardMessages = peek(boardMessages)
-	newboardMessages[taggedObject:GetAttribute("Id")] = tempScope:Value({})
+	newboardMessages[boardId] = tempScope:Value({})
 	boardMessages:set(newboardMessages)
+	
+	lastBoardMessages[boardId] = {}
+	
+	local hasMessage = tempScope:Value(false)
+	boardsSubmitted[boardId] = hasMessage
 	
 	tempScope:Observer(writingMessage):onBind(function()
 		if peek(writingMessage) then
@@ -277,6 +315,18 @@ MessageBoards.taggedObjectAdded = function(taggedObject: Instance)
 			taggedObject:AddTag(Tooltip.OBJECT_TAG)
 		end
 	end)
+	
+	local clearProximity: ProximityPrompt = taggedObject:FindFirstChild("ClearMessage"):FindFirstChildWhichIsA("ProximityPrompt")
+	tempScope:Hydrate(clearProximity) {
+		Enabled = hasMessage,
+		
+		[OnEvent("Triggered")] = function()
+			if not peek(hasMessage) then
+				return
+			end
+			service:InteractAttempt("MessageBoards", "ClearMessageAttempt", boardId)
+		end,
+	}
 	
 	local clickDetector: ClickDetector = taggedObject:FindFirstChildWhichIsA("ClickDetector")
 	tempScope:Hydrate(clickDetector) {
@@ -294,9 +344,10 @@ MessageBoards.taggedObjectAdded = function(taggedObject: Instance)
 			
 			local clippingOtherMessage: Fusion.Value<boolean> = writingScope:Value(false)
 			local outOfBounds: Fusion.Value<boolean> = writingScope:Value(false)
+			local charLimitHit: Fusion.Value<boolean> = writingScope:Value(false)
 			
 			writingScope:Computed(function(use: Fusion.Use)
-				canSubmit:set(not use(clippingOtherMessage) and not use(outOfBounds))
+				canSubmit:set(not use(clippingOtherMessage) and not use(outOfBounds) and not use(charLimitHit))
 			end)
 			
 			local bgColor: Fusion.Value<Color3> = writingScope:Value(Color3.new())
@@ -336,7 +387,10 @@ MessageBoards.taggedObjectAdded = function(taggedObject: Instance)
 				
 				[OnChange("Text")] = function(newText)
 					size:set(getTextFlexSize(newText))
+					
 					text = textBox.Text
+					
+					charLimitHit:set(string.len(text) > MessageBoardsData.Gui.Message.MAX_CHARACTERS)
 				end,
 				[OnChange("Size")] = function()
 					local bounds = getTextFlexSize(`<b>{player.Name}:</b> {textBox.Text}`)
@@ -372,7 +426,7 @@ MessageBoards.taggedObjectAdded = function(taggedObject: Instance)
 			table.insert(writingScope, textBox.FocusLost:Connect(function(_, input)
 				if input.KeyCode == Enum.KeyCode.Return and peek(canSubmit) then
 					canEdit:set(false)
-					service:InteractAttempt("MessageBoards", "SubmitMessageAttempt", taggedObject:GetAttribute("Id"), pos, peek(size), text):andThen(function(success: boolean)
+					service:InteractAttempt("MessageBoards", "SubmitMessageAttempt", boardId, pos, peek(size), text):andThen(function(success: boolean)
 						if success then
 							bgColor:set(MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR)
 						end

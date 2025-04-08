@@ -35,7 +35,7 @@ local camera = workspace.CurrentCamera
 local taggedObjects: { [number]: Instance } = {}
 
 local raycastParams = RaycastParams.new()
-raycastParams.FilterType = Enum.RaycastFilterType.Include
+raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
 local function taggedObjectAdded(taggedObject: Instance)
 	table.insert(taggedObjects, taggedObject)
@@ -84,7 +84,7 @@ function TooltipController:KnitInit()
 		mouseX:set(mouse.X + Tooltip.MOUSE_X_OFFSET)
 		mouseY:set(mouse.Y + Tooltip.MOUSE_Y_OFFSET)
 		
-		raycastParams.FilterDescendantsInstances = { taggedObjects }
+		raycastParams.FilterDescendantsInstances = { char:GetDescendants() }
 		
 		local ray = camera:ScreenPointToRay(mouse.X, mouse.Y)
 		-- local origin = char:GetPivot().Position
