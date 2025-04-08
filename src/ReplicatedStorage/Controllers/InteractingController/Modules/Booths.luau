@@ -10,6 +10,7 @@ local Data = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 
 local playerThumbnail = Data.PlayerThumbnail
 
+local Streamable = require(ExPackages.Streamable).Streamable
 local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
@@ -36,67 +37,121 @@ type StandOwnerPart = Part & {
 
 -- Local --
 local player = Players.LocalPlayer
+local userIdString = tostring(player.UserId)
 
 local menuController
 local controller
 
-local boothScopes: { [Model]: Fusion.Scope } = {}
+local boothTempScopes: { [string]: Fusion.Scope } = {}
 
-local boothsData: { [Model]: {
+local clientBoothsData: { [string]: {
 	scope: Fusion.Scope,
-	owner: Fusion.Value<Player?>
+	
+	ownerUserId: Fusion.Value<string>,
+	
+	textData: Fusion.Value<{
+		text: string,
+		textColor: Color3, strokeColor: Color3,
+		font: Font, strokeThickness: number,
+	}>,
 } } = {}
 
 local mainScope = Fusion:scoped()
 local editing: Fusion.Value<boolean> = mainScope:Value(false)
+local hasBooth: Fusion.Value<boolean> = mainScope:Value(false)
+
+local cachedBooths: { [number]: Model } = {}
+
+local function boothDataLoaded()
+	for i, cachedBooth in cachedBooths do
+		table.remove(cachedBooths, i)
+		Booths.taggedObjectAdded(cachedBooth)
+	end
+end
 
 Booths.init = function()
 	menuController = Knit.GetController("MenuController")
 	controller = Knit.GetController("InteractingController")
 	
-	controller:ObserveInteraction("Booths", function(interaction: string)
+	controller:ObserveInteraction("Booths", function(interaction: string, ...)
+		local data = { ... }
 		if interaction == "CancelEdit" then
 			editing:set(false)
+		elseif interaction == "UpdateBoothsData" then
+			for boothId, boothData in data[1] do
+				local clientBoothData = clientBoothsData[boothId]
+				if not clientBoothData then
+					clientBoothData = {}
+					
+					local scope = Fusion:scoped()
+					clientBoothData.scope = scope
+					
+					clientBoothData.ownerUserId = scope:Value(boothData.ownerUserId)
+					clientBoothData.textData = scope:Value(boothData.textData)
+					
+					clientBoothsData[boothId] = clientBoothData
+				end
+				
+				local newOwnerUserId = boothData.ownerUserId
+				clientBoothData.ownerUserId:set(newOwnerUserId)
+				if newOwnerUserId then
+					clientBoothData.textData:set(boothData.textData)
+				else
+					clientBoothData.textData:set(Data.Defaults.DESCRIPTION_DATA)
+				end
+				
+				boothDataLoaded()
+			end
 		end
 	end)
 end
 
 local function onBoothInteracted(booth: Model)
-	local boothData = boothsData[booth]
-	if not boothData then
+	local boothId = booth:GetAttribute("Id")
+	
+	local boothData = clientBoothsData[boothId]
+	if not userIdString then
 		return
 	end
 	
-	local owner: Player? = peek(boothData.owner)
-	if owner == player then
-		controller.InteractingService:InteractAttempt("Booths", "Edit", booth):andThen(function(success: boolean?)
+	local ownerUserId: string? = peek(boothData.ownerUserId)
+	if ownerUserId == userIdString then
+		controller.InteractingService:InteractAttempt("Booths", "Edit", boothId):andThen(function(success: boolean?)
 			if not success then
 				return
 			end
 			editing:set(true)
 			menuController:SetMenu(player.PlayerGui:WaitForChild("TextBooth"))
 		end)
-	elseif not owner then
-		controller.InteractingService:InteractAttempt("Booths", "Claim", booth):andThen(function(success: boolean)
-			if not success then
-				return
-			end
-			boothsData[booth].owner:set(player)
-		end)
+	elseif not ownerUserId then
+		controller.InteractingService:InteractAttempt("Booths", "Claim", boothId)
 	end
 end
 
 Booths.taggedObjectAdded = function(taggedObject: Instance)
+	local boothId = taggedObject:GetAttribute("Id")
+	
+	local boothData = clientBoothsData[boothId]
+	if not boothData then
+		if not table.find(cachedBooths, taggedObject) then
+			table.insert(cachedBooths, taggedObject)
+		end
+		return
+	end
+	local owner = boothData.ownerUserId
+	
 	local boothInteractionPart: BoothInteractionPart = taggedObject:WaitForChild("BoothInteraction")
 	local descriptionPart: DescriptionPart = taggedObject:WaitForChild("Description")
 	local standOwnerPart: StandOwnerPart = taggedObject:WaitForChild("StandOwner")
 	
-	local scope: Fusion.Scope = Fusion:scoped()
+	local tempScope: Fusion.Scope = Fusion:scoped()
 	
-	local owner = scope:Value(nil)
-	scope:Observer(owner):onBind(function()
-		local newOwner: Player? = peek(owner)
+	tempScope:Observer(owner):onBind(function()
+		local ownerUserId: string? = peek(owner)
+		local newOwner: Player? = ownerUserId and Players:GetPlayerByUserId(tonumber(ownerUserId)) or nil
 		standOwnerPart.SurfaceGui.TextLabel.Text = newOwner and newOwner.Name or Data.Defaults.OWNER_LABEL
+		
+		hasBooth:set(newOwner ~= nil and newOwner == player)
 		
 		local profileImage: string?
 		if newOwner then
@@ -105,50 +160,56 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 		descriptionPart.SurfaceGui.PlayerAvatar.Image = profileImage or ""
 	end)
 	
-	local function setOwner()
-		local ownerName = taggedObject:GetAttribute("Owner")
-		owner:set(ownerName and Players:FindFirstChild(ownerName) or nil)
+	local function setTextProperties()
+		local descPart: Part? = taggedObject:FindFirstChild("Description")
+		if not descPart then
+			return
+		end
+		
+		local textData = peek(boothData.textData)
+		
+		local descriptionLabel: TextLabel = descPart:WaitForChild("SurfaceGui"):FindFirstChild("Description")
+		descriptionLabel.Text = textData.text
+		descriptionLabel.TextColor3 = textData.textColor
+		descriptionLabel.FontFace = textData.font
+		
+		local stroke = descriptionLabel:FindFirstChildWhichIsA("UIStroke")
+		stroke.Color = textData.strokeColor
+		stroke.Thickness = textData.strokeThickness
 	end
-	table.insert(scope, taggedObject:GetAttributeChangedSignal("Owner"):Connect(function()
-		setOwner()
-	end))
-	setOwner()
+	Streamable.new(taggedObject, "Description"):Observe(setTextProperties)
+	boothData.scope:Observer(boothData.textData):onBind(setTextProperties)
 	
-	boothsData[taggedObject] = {
-		scope = scope,
-		owner = owner,
-	}
-	
-	scope:Hydrate(ReplicatedStorage.Assets.Booths.Claim:Clone()) {
-		Enabled = scope:Computed(function(use: Fusion.Use)
-			local isEditing = use(editing)
-			local owner = use(owner)
-			local isOwner = owner == Players.LocalPlayer
-			
-			if isEditing then
+	tempScope:Hydrate(ReplicatedStorage.Assets.Booths.Claim:Clone()) {
+		Enabled = tempScope:Computed(function(use: Fusion.Use)
+			local isOwner = use(owner) == tostring(player.UserId)
+			if use(editing) or (use(hasBooth) and not isOwner) then
 				return false
+			elseif isOwner or not use(owner) then
+				return true
 			end
-			return isOwner or not owner
 		end),
-		ActionText = scope:Computed(function(use: Fusion.Use)
+		ActionText = tempScope:Computed(function(use: Fusion.Use)
 			return use(owner) and "Edit" or "Claim"
 		end),
 		Parent = boothInteractionPart,
 		[OnEvent("Triggered")] = function(player)
-			if player ~= Players.LocalPlayer then
-				return
-			end
 			onBoothInteracted(taggedObject)
 		end
 	}
 	
-	boothScopes[taggedObject] = scope
+	boothTempScopes[taggedObject] = tempScope
 end
 
 Booths.taggedObjectRemoved = function(taggedObject: Instance)
-	local boothData = boothScopes[taggedObject]
-	if boothData then
-		boothsData.scope:doCleanup()
+	local scope = boothTempScopes[taggedObject:GetAttribute("Id")]
+	if scope then
+		scope:doCleanup()
+	end
+	
+	local cachedIndex = table.find(cachedBooths, taggedObject)
+	if cachedIndex then
+		table.remove(cachedBooths, cachedIndex)
 	end
 end
 

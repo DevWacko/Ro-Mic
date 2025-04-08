@@ -1,4 +1,5 @@
 -- Services --
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -7,10 +8,9 @@ local ServerStorage = game:GetService("ServerStorage")
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
-local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
-local peek = Fusion.peek
+local BoothsData = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 
 -- Main Module --
 local Booths = {
@@ -20,47 +20,49 @@ local Booths = {
 -- Local --
 local service
 
-local boothsData: { [Model]: {
-	scope: Fusion.scope,
-	owner: Fusion.Value<Player?>,
+local serverBoothsData: { [string]: {
+	-- scope: Fusion.scope,
+	ownerUserId: string?,
+	textData: {
+		text: string,
+		textColor: Color3, strokeColor: Color3,
+		font: Font, strokeThickness: number,
+	},
 } } = {}
 
-local playersWithBooth: { [number]: Player } = {}
-
-local function warning(key: string, ...)
-	local data = { ... }
-	if key == "BoothData" then
-		warn("There was no booth data for the booth: ", data[1])
-	end
-end
+local playerBooths: { [string]: Model } = {}
+local boothModels: { [string]: Model } = {}
 
 local function dataFromBooth(booth: Model)
-	local boothData = boothsData[booth]
-	if not boothData then
-		warning("BoothData", booth)
-		return
-	end
-	return boothData
+	return serverBoothsData[booth:GetAttribute("Id")]
+end
+
+local function updateBoothsForPlayer(player: Player)
+	service.Client.Interaction:Fire(player, "Booths", "UpdateBoothsData", serverBoothsData)
 end
 
 local function claimAttempt(player: Player, booth: Model)
+	local userIdString = tostring(player.UserId)
+	
 	local data = dataFromBooth(booth)
 	if not data then
 		return
 	end
-	if table.find(playersWithBooth, player) then
+	if playerBooths[userIdString] then
 		return
 	end
 	
-	local owner = data.owner
-	if peek(owner) then
+	local ownerUserId = data.ownerUserId
+	if ownerUserId then
 		return
 	end
-	owner:set(player)
+	data.ownerUserId = userIdString
 	
-	table.insert(playersWithBooth, player)
+	playerBooths[userIdString] = booth
 	
-	return true
+	for _, otherPlayer in Players:GetPlayers() do
+		updateBoothsForPlayer(otherPlayer)
+	end
 end
 
 local function editAttempt(player: Player, booth: Model)
@@ -69,8 +71,8 @@ local function editAttempt(player: Player, booth: Model)
 		return
 	end
 	
-	local owner = data.owner
-	if peek(owner) ~= player then
+	local ownerUserId = data.ownerUserId
+	if ownerUserId ~= tostring(player.UserId) then
 		return
 	end
 	
@@ -78,28 +80,73 @@ local function editAttempt(player: Player, booth: Model)
 end
 
 local function unclaimAttempt(player: Player)
-	local index = table.find(playersWithBooth, player)
-	if not index then
+	local userIdString = tostring(player.UserId)
+	
+	if not playerBooths[userIdString] then
+		return false
+	end
+	
+	for _, boothData in serverBoothsData do
+		if boothData.ownerUserId ~= userIdString then
+			continue
+		end
+		boothData.ownerUserId = nil
+		
+		playerBooths[userIdString] = nil
+	end
+	
+	for _, otherPlayer in Players:GetPlayers() do
+		updateBoothsForPlayer(otherPlayer)
+	end
+	
+	return true
+end
+
+local function setTextAttempt(
+	player: Player,
+	text: string,
+	textColor: Color, strokeColor: Color3,
+	font: Font, strokeThickness: number
+)
+	if not text or not textColor or not strokeColor or not font or not strokeThickness then
+		return
+	end
+	if typeof(text) ~= "string" or typeof(textColor) ~= "Color3" or typeof(strokeColor) ~= "Color3" or typeof(font) ~= "Font" or typeof(strokeThickness) ~= "number" then
 		return
 	end
 	
-	for _, boothData in boothsData do
-		local owner = boothData.owner
-		if peek(owner) ~= player then
-			continue
-		end
-		owner:set(nil)
-		
-		table.remove(playersWithBooth, index)
-		
-		return true
+	local userIdString = tostring(player.UserId)
+	
+	local playerBooth = playerBooths[userIdString]
+	if not playerBooth then
+		return
+	end
+	
+	local playerBoothData = serverBoothsData[playerBooth:GetAttribute("Id")]
+	if not playerBoothData then
+		return
+	end
+	
+	playerBoothData.textData = {
+		text = text,
+		textColor = textColor, strokeColor = strokeColor,
+		font = font, strokeThickness = strokeThickness,
+	}
+	
+	for _, otherPlayer in Players:GetPlayers() do
+		updateBoothsForPlayer(otherPlayer)
 	end
 end
 
-Booths.sentInteractAttempt = function(player: Player, interaction: string, booth: Model)
+Booths.sentInteractAttempt = function(player: Player, interaction: string, ...)
 	if not interaction or typeof(interaction) ~= "string" then
 		return
 	end
+	
+	local data = { ... }
+	
+	local boothId = data[1]
+	local booth = boothModels[boothId]
 	local validBooth = booth and booth:HasTag(Booths.Tag)
 	
 	if interaction == "Claim" and validBooth then
@@ -108,6 +155,8 @@ Booths.sentInteractAttempt = function(player: Player, interaction: string, booth
 		return editAttempt(player, booth)
 	elseif interaction == "Unclaim" then
 		return unclaimAttempt(player)
+	elseif interaction == "SetTextAttempt" then
+		return setTextAttempt(player, ...)
 	end
 end
 
@@ -115,40 +164,49 @@ Booths.init = function()
 	service = Knit.GetService("InteractingService")
 end
 
-Booths.taggedObjectAdded = function(taggedObject: BoothModel)
-	local scope = Fusion:scoped()
-	local owner = scope:Value(nil)
+Booths.taggedObjectAdded = function(taggedObject: Instance)
+	local id = HttpService:GenerateGUID()
+	taggedObject:SetAttribute("Id", id)
 	
-	scope:Observer(owner):onChange(function()
-		local newOwner = peek(owner)
-		taggedObject:SetAttribute("Owner", newOwner and newOwner.Name or nil)
-	end)
-	
-	boothsData[taggedObject] = {
-		scope = scope,
-		owner = owner,
+	serverBoothsData[id] = {
+		textData = BoothsData.Defaults.DESCRIPTION_DATA,
 	}
+	
+	boothModels[id] = taggedObject
 end
 
-Booths.taggedObjectRemoved = function(taggedObject: BoothModel)
-	local boothData = boothsData[taggedObject]
+Booths.taggedObjectRemoved = function(taggedObject: Instance)
+	local id = taggedObject:GetAttribute("Id")
+	
+	local boothData = serverBoothsData[id]
 	if boothData then
 		boothData.scope:doCleanup()
-		boothsData[taggedObject] = nil
+		serverBoothsData[id] = nil
 	end
+	
+	boothModels[id] = taggedObject
+end
+
+Booths.playerAdded = function(player: Player)
+	print("PLAYER, ADDED", player)
+	updateBoothsForPlayer(player)
 end
 
 Booths.playerRemoving = function(player: Player)
-	local index = table.find(playersWithBooth, player)
-	if index then
-		table.remove(playersWithBooth, index)
+	local userIdString = tostring(player.UserId)
+	if playerBooths[userIdString] then
+		playerBooths[userIdString] = nil
 	end
 	
-	for _, boothData in boothsData do
-		if peek(boothData.owner) ~= player then
+	for _, boothData in serverBoothsData do
+		if boothData.ownerUserId ~= userIdString then
 			continue
 		end
-		boothData.owner:set(nil)
+		boothData.ownerUserId = nil
+	end
+	
+	for _, otherPlayer in Players:GetPlayers() do
+		updateBoothsForPlayer(otherPlayer)
 	end
 end
 
