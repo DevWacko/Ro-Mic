@@ -106,15 +106,20 @@ end
 local function setTextAttempt(
 	player: Player,
 	text: string,
-	textColor: Color3, strokeColor: Color3,
-	font: Font, strokeThickness: number,
 	textColorIndex: number, strokeColorIndex: number,
-	fontIndex: number, strokeOpacity: number
+	fontIndex: number, weightIndex: number, styleIndex: number,
+	strokeOpacity: number
 )
-	if not text or not textColor or not strokeColor or not font or not strokeThickness then
+	if not text or
+		not textColorIndex or not strokeColorIndex or
+		not fontIndex or not weightIndex or not styleIndex or
+		not strokeOpacity then
 		return
 	end
-	if typeof(text) ~= "string" or typeof(textColor) ~= "Color3" or typeof(strokeColor) ~= "Color3" or typeof(font) ~= "Font" or typeof(strokeThickness) ~= "number" then
+	if typeof(text) ~= "string" or
+		typeof(textColorIndex) ~= "number" or typeof(strokeColorIndex) ~= "number" or
+		typeof(fontIndex) ~= "number" or typeof(weightIndex) ~= "number" or typeof(styleIndex) ~= "number" or
+		typeof(strokeOpacity) ~= "number" then
 		return
 	end
 	
@@ -132,12 +137,15 @@ local function setTextAttempt(
 	
 	playerDataService:SetValue(player, "BoothTextData", {
 		TextColorIndex = textColorIndex, StrokeColorIndex = strokeColorIndex,
-		FontIndex = fontIndex, StrokeOpacity = strokeOpacity,
+		FontIndex = fontIndex, WeightIndex = weightIndex, StyleIndex = styleIndex,
+		StrokeOpacity = strokeOpacity,
 	})
+	local boothStylingData = BoothsData.BoothStyling
 	playerBoothData.textData = {
 		text = text,
-		textColor = textColor, strokeColor = strokeColor,
-		font = font, strokeThickness = strokeThickness,
+		textColor = boothStylingData.COLORS[textColorIndex], strokeColor = boothStylingData.COLORS[strokeColorIndex],
+		font = boothStylingData.FONTS[fontIndex], weight = boothStylingData.WEIGHTS[weightIndex], style = boothStylingData.STYLES[styleIndex],
+		strokeOpacity = strokeOpacity,
 	}
 	
 	for _, otherPlayer in Players:GetPlayers() do

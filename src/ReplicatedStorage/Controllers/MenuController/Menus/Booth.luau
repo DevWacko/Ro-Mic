@@ -11,6 +11,8 @@ local Knit = require(ExPackages.Knit)
 local OnEvent, OnChange = Fusion.OnEvent, Fusion.OnChange
 local peek = Fusion.peek
 
+local BoothsData = require(ReplicatedStorage.Source.Data.Interacting.Booths)
+
 -- Main Module --
 local Booth = { MenuName = "TextBooth" }
 
@@ -31,22 +33,7 @@ local weightIndex: Fusion.Value<number> = mainScope:Value(1)
 local styleIndex: Fusion.Value<number> = mainScope:Value(1)
 local fontIndex: Fusion.Value<number> = mainScope:Value(1)
 
-local strokeOpacity: Fusion.Value<number> = mainScope:Value(1)
-
-local colors: { [number]: Color3 } = {}
-local fonts: { [number]: Font } = {}
-local weights = {
-	[1] = Enum.FontWeight.Regular,
-	[2] = Enum.FontWeight.SemiBold,
-	[3] = Enum.FontWeight.Bold,
-	[4] = Enum.FontWeight.Heavy,
-	[5] = Enum.FontWeight.ExtraLight,
-	[6] = Enum.FontWeight.Light,
-}
-local styles = {
-	[1] = Enum.FontStyle.Normal,
-	[2] = Enum.FontStyle.Italic,
-}
+local strokeOpacity: Fusion.Value<number> = mainScope:Value(BoothsData.Defaults.DESCRIPTION_DATA.strokeOpacity)
 
 local mainFrame: Frame
 local middleFrame: Frame
@@ -66,6 +53,8 @@ Booth.init = function()
 			strokeColorIndex:set(boothTextData.StrokeColorIndex)
 			
 			fontIndex:set(boothTextData.FontIndex)
+			weightIndex:set(boothTextData.WeightIndex)
+			styleIndex:set(boothTextData.StyleIndex)
 			
 			strokeOpacity:set(boothTextData.StrokeOpacity)
 		end):catch(function(err: string?)
@@ -100,9 +89,9 @@ local function manageFonts()
 		["Stroke"] = tempScope:Value(false),
 	}
 	
-	tempScope:Computed(function(use: Fusion.Use)
-		shownValues["Fonts"]:set(use)
-	end)
+	-- tempScope:Computed(function(use: Fusion.Use)
+	-- 	shownValues["Fonts"]:set(use)
+	-- end)
 	
 	local fontContents: ScrollingFrame = mainFrame.FontsDropdown.Contents
 	local lineWeightContents: ScrollingFrame = mainFrame.LineWeightDropdown.Contents
@@ -145,32 +134,16 @@ local function manageFonts()
 		shownValues["Stroke"],
 		strokeStartSize, UDim2.fromScale(0, strokeStartSize.Y.Scale)
 	)
-	
-	--[[
-	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight").MouseButton1Click:Connect(function()
-		shownValues["Weight"],:set(not peek(shownValues["Weight"],))
-	end))
-	tempScope:Hydrate(mainFrame.LineWeightDropdown) {
-		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(shownValues["Weight"],) and 0 or 1
-		end), TweenInfo.new(0.5)),
-		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(shownValues["Weight"],) and UDim2.fromScale(0.245, 0.474) or UDim2.fromScale(0.245, 0)
-		end), 25, 0.8),
-	}
-	
-	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight").MouseButton1Click:Connect(function()
-		shownValues["Weight"],:set(not peek(shownValues["Weight"],))
-	end))
-	tempScope:Hydrate(mainFrame.LineWeightDropdown) {
-		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(shownValues["Weight"],) and 0 or 1
-		end), TweenInfo.new(0.5)),
-		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(shownValues["Weight"],) and UDim2.fromScale(0.245, 0.474) or UDim2.fromScale(0.245, 0)
-		end), 25, 0.8),
-	}
-	]]
+	local strokeBar: Frame = strokeDropdown:FindFirstChild("Stroke")
+	local strokeSlider: Frame = strokeBar:FindFirstChild("Slider")
+	strokeSlider:SetAttribute("Value", peek(strokeOpacity))
+	local function setOpacity()
+		local steppedValue = math.floor(strokeSlider:GetAttribute("Value") * 100) / 100
+		strokeBar:FindFirstChild("Value").Text = steppedValue
+		strokeOpacity:set(steppedValue)
+	end
+	table.insert(tempScope, strokeSlider:GetAttributeChangedSignal("Value"):Connect(setOpacity))
+	setOpacity()
 	
 	tempScope:Hydrate(mainFrame.Middle.Fonts.Arrow.Icon) {
 		Rotation = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
@@ -187,7 +160,7 @@ local function manageFonts()
 	}
 	
 	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("Italic"):FindFirstChild("Italic").MouseButton1Click:Connect(function()
-		if peek(styleIndex) + 1 > #styles then
+		if peek(styleIndex) + 1 > #BoothsData.BoothStyling.STYLES then
 			styleIndex:set(1)
 		else
 			styleIndex:set(peek(styleIndex) + 1)
@@ -261,7 +234,7 @@ local function manageColors()
 	}
 	tempScope:Hydrate(colorPicker.Bucket) {
 		ImageColor3 = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return colors[use(textColorIndex)]
+			return BoothsData.BoothStyling.COLORS[use(textColorIndex)]
 		end), TweenInfo.new(0.5)),
 	}
 	tempScope:Hydrate(colorsCanvas) {
@@ -307,14 +280,14 @@ Booth.menuLoaded = function(menu: ScreenGui)
 			continue
 		end
 		local color = colorButton.BackgroundColor3
-		colors[tonumber(colorButton.Name)] = color
+		BoothsData.BoothStyling.COLORS[tonumber(colorButton.Name)] = color
 	end
 	for _, fontButton: TextButton? in mainFrame.FontsDropdown.Contents:GetChildren() do
 		if not fontButton:IsA("TextButton") then
 			continue
 		end
 		local font = fontButton.FontFace
-		fonts[tonumber(fontButton.Name)] = font
+		BoothsData.BoothStyling.FONTS[tonumber(fontButton.Name)] = font
 	end
 	
 	table.insert(tempScope, menu:GetPropertyChangedSignal("Enabled"):Connect(function()
@@ -340,27 +313,31 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	local text: Fusion.Value<string> = tempScope:Value("")
 	
 	local function updateBoard()
-		interactingService:InteractAttempt("Booths", "SetTextAttempt", peek(text),
-			colors[peek(textColorIndex)], colors[peek(strokeColorIndex)],
-			fonts[peek(fontIndex)], peek(strokeOpacity),
+		interactingService:InteractAttempt("Booths", "SetTextAttempt",
+			peek(text),
 			peek(textColorIndex), peek(strokeColorIndex),
-			peek(fontIndex)
+			peek(fontIndex), peek(weightIndex), peek(styleIndex),
+			peek(strokeOpacity)
 		)
 	end
 	tempScope:Observer(textColorIndex):onChange(updateBoard)
 	tempScope:Observer(strokeColorIndex):onChange(updateBoard)
+	
 	tempScope:Observer(fontIndex):onChange(updateBoard)
-	--tempScope:Observer(strokeOpacity):onChange(updateBoard)
+	tempScope:Observer(weightIndex):onChange(updateBoard)
+	tempScope:Observer(styleIndex):onChange(updateBoard)
+	
+	tempScope:Observer(strokeOpacity):onChange(updateBoard)
 	
 	tempScope:Hydrate(textBox) {
 		FontFace = tempScope:Computed(function(use: Fusion.Use)
-			return Font.new(fonts[use(fontIndex)].Family, weights[use(weightIndex)], styles[use(styleIndex)])
+			return Font.new(BoothsData.BoothStyling.FONTS[use(fontIndex)].Family, BoothsData.BoothStyling.WEIGHTS[use(weightIndex)], BoothsData.BoothStyling.STYLES[use(styleIndex)])
 		end),
 		TextColor3 = tempScope:Computed(function(use: Fusion.Use)
-			return colors[use(textColorIndex)]
+			return BoothsData.BoothStyling.COLORS[use(textColorIndex)]
 		end),
 		PlaceholderColor3 = tempScope:Computed(function(use: Fusion.Use)
-			return colors[use(textColorIndex)]
+			return BoothsData.BoothStyling.COLORS[use(textColorIndex)]
 		end),
 		[OnChange("Text")] = function(newText)
 			text:set(newText)
@@ -374,10 +351,10 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	}
 	tempScope:Hydrate(textBox:FindFirstChildWhichIsA("UIStroke")) {
 		Color = tempScope:Computed(function(use: Fusion.Use)
-			return colors[use(strokeColorIndex)]
+			return BoothsData.BoothStyling.COLORS[use(strokeColorIndex)]
 		end),
-		Thickness = tempScope:Computed(function(use: Fusion.Use)
-			return strokeThicknessRange[use(strokeIndex)]
+		Transparency = tempScope:Computed(function(use: Fusion.Use)
+			return 1 - use(strokeOpacity)
 		end),
 	}
 end

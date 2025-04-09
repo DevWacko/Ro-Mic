@@ -52,7 +52,7 @@ local clientBoothsData: { [string]: {
 	textData: Fusion.Value<{
 		text: string,
 		textColor: Color3, strokeColor: Color3,
-		font: Font, strokeThickness: number,
+		font: Font, strokeOpacity: number,
 	}>,
 } } = {}
 
@@ -171,11 +171,11 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 		local descriptionLabel: TextLabel = descPart:WaitForChild("SurfaceGui"):FindFirstChild("Description")
 		descriptionLabel.Text = textData.text
 		descriptionLabel.TextColor3 = textData.textColor
-		descriptionLabel.FontFace = textData.font
+		descriptionLabel.FontFace = Font.new(textData.font.Family, textData.weight, textData.style)
 		
 		local stroke = descriptionLabel:FindFirstChildWhichIsA("UIStroke")
 		stroke.Color = textData.strokeColor
-		stroke.Thickness = textData.strokeThickness
+		stroke.Transparency = 1 - textData.strokeOpacity
 	end
 	Streamable.new(taggedObject, "Description"):Observe(setTextProperties)
 	boothData.scope:Observer(boothData.textData):onBind(setTextProperties)

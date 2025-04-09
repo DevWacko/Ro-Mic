@@ -1,6 +1,8 @@
 -- Services --
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Modules --
 local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
@@ -14,26 +16,48 @@ local Slider = {
 }
 
 -- Local --
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
 local tempScopes: { [Instance]: Fusion.Scope } = {}
 
 Slider.taggedObjectAdded = function(taggedObject: GuiObject)
 	local scope = Fusion:scoped()
 	
 	local value: Fusion.Value<number> = scope:Value(taggedObject:GetAttribute("Value"))
-	local min: Fusion.Value<number> = scope:Value(taggedObject:GetAttribute("Min"))
-	local max: Fusion.Value<number> = scope:Value(taggedObject:GetAttribute("Max"))
 	
 	local handle: GuiButton = taggedObject:FindFirstChild("Handle")
 	
 	local handleStartY = handle.Position.Y
-	local handlePos: Fusion.Value<UDim2> = scope:Value(UDim2.new(peek(value) / peek(max), 0, handleStartY))
+	local startX = UDim.new(peek(taggedObject:GetAttribute("Value")) / peek(taggedObject:GetAttribute("Max")))
+	local handlePos: Fusion.Value<UDim2> = scope:Value(UDim2.new(startX, handleStartY))
+	
+	local fill: GuiObject? = taggedObject:FindFirstChild("Fill")
+	local fillSize: Fusion.Value<UDim2>? = fill and scope:Value(UDim2.fromScale(startX, 1)) or nil
+	
+	local progress = peek(taggedObject:GetAttribute("Value"))
+	
+	local function setSize(value: number)
+		progress = peek(taggedObject:GetAttribute("Max")) * value
+		
+		handlePos:set(UDim2.new(UDim.new(value, 0), handleStartY))
+		fillSize:set(UDim2.new(value, 0, 1, 0))
+	end
+	
+	scope:Observer(value):onBind(function()
+		setSize(peek(value))
+	end)
 	
 	local holding: Fusion.Value<boolean> = scope:Value(false)
 	local holdingCon: RBXScriptConnection?
 	scope:Observer(holding):onChange(function()
 		if peek(holding) then
 			holdingCon = RunService.RenderStepped:Connect(function()
+				local sliderAbsPos = taggedObject.AbsolutePosition.X
+				local sliderWidth = taggedObject.AbsoluteSize.X
 				
+				local relativeX = math.clamp((mouse.X - sliderAbsPos) / sliderWidth, 0, 1)
+				value:set(relativeX)
 			end)
 		else
 			if holdingCon then
@@ -48,10 +72,23 @@ Slider.taggedObjectAdded = function(taggedObject: GuiObject)
 		[OnEvent("MouseButton1Down")] = function()
 			holding:set(true)
 		end,
-		[OnEvent("MouseButton1Up")] = function()
-			holding:set(false)
-		end,
 	}
+	table.insert(scope, UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			holding:set(false)
+			taggedObject:SetAttribute("Value", progress)
+		end
+	end))
+	
+	table.insert(scope, taggedObject:GetAttributeChangedSignal("Value"):Connect(function()
+		setSize(taggedObject:GetAttribute("Value"))
+	end))
+	
+	if fill then
+		scope:Hydrate(fill) {
+			Size = fillSize,
+		}
+	end
 	
 	tempScopes[taggedObject] = scope
 end
