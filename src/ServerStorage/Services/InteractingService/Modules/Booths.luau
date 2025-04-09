@@ -18,6 +18,7 @@ local Booths = {
 }
 
 -- Local --
+local playerDataService
 local service
 
 local serverBoothsData: { [string]: {
@@ -105,8 +106,10 @@ end
 local function setTextAttempt(
 	player: Player,
 	text: string,
-	textColor: Color, strokeColor: Color3,
-	font: Font, strokeThickness: number
+	textColor: Color3, strokeColor: Color3,
+	font: Font, strokeThickness: number,
+	textColorIndex: number, strokeColorIndex: number,
+	fontIndex: number, strokeIndex: number
 )
 	if not text or not textColor or not strokeColor or not font or not strokeThickness then
 		return
@@ -127,6 +130,10 @@ local function setTextAttempt(
 		return
 	end
 	
+	playerDataService:SetValue(player, "BoothTextData", {
+		TextColorIndex = textColorIndex, StrokeColorIndex = strokeColorIndex,
+		FontIndex = fontIndex, StrokeThicknessIndex = strokeIndex,
+	})
 	playerBoothData.textData = {
 		text = text,
 		textColor = textColor, strokeColor = strokeColor,
@@ -161,6 +168,7 @@ Booths.sentInteractAttempt = function(player: Player, interaction: string, ...)
 end
 
 Booths.init = function()
+	playerDataService = Knit.GetService("PlayerDataService")
 	service = Knit.GetService("InteractingService")
 end
 

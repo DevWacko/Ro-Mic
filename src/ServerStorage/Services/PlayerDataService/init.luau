@@ -108,6 +108,10 @@ function PlayerDataService:SetValue(player: Player, key: string, value: any)
 	self.Client.ValueChanged:Fire(player, key, playerData[key])
 end
 
+function PlayerDataService.Client:GetValue(player: Player, key: string)
+	return self.Server:GetValue(player, key)
+end
+
 function PlayerDataService:GetValue(player: Player, key: string)
 	if not validKey(player, key) then
 		return

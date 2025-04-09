@@ -26,7 +26,7 @@ local function TooltipFrame(
 		end), TweenInfo.new(0.2)),
 		
 		[Children] = {
-			scope:New ("UICorner") { CornerRadius = UDim.new(0.3, 0) },
+			scope:New ("UICorner") { CornerRadius = UDim.new(0.2, 0) },
 			scope:New "TextLabel" {
 				Size = UDim2.fromScale(1, 1),
 				
