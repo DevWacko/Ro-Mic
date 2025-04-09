@@ -11,8 +11,8 @@ PlayerDataTemplate.Values = {
 	PlayTime = 0,
 	BoothTextData = {
 		TextColorIndex = 1, StrokeColorIndex = 1,
-		FontIndex = 1,-- StyleIndex = 1, WeightIndex = 1,
-		StrokeThicknessIndex = 1,
+		FontIndex = 1,
+		StrokeOpacity = 1,
 	},
 }
 

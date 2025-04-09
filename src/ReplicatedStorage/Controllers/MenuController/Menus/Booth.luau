@@ -31,7 +31,7 @@ local weightIndex: Fusion.Value<number> = mainScope:Value(1)
 local styleIndex: Fusion.Value<number> = mainScope:Value(1)
 local fontIndex: Fusion.Value<number> = mainScope:Value(1)
 
-local strokeIndex: Fusion.Value<number> = mainScope:Value(1)
+local strokeOpacity: Fusion.Value<number> = mainScope:Value(1)
 
 local colors: { [number]: Color3 } = {}
 local fonts: { [number]: Font } = {}
@@ -46,10 +46,6 @@ local weights = {
 local styles = {
 	[1] = Enum.FontStyle.Normal,
 	[2] = Enum.FontStyle.Italic,
-}
-local strokeThicknessRange = {
-	[1] = 0,
-	[2] = 3,
 }
 
 local mainFrame: Frame
@@ -66,24 +62,47 @@ Booth.init = function()
 	
 	playerDataService.ProfileLoaded:Connect(function()
 		playerDataService:GetValue("BoothTextData"):andThen(function(boothTextData)
-			print(boothTextData)
 			textColorIndex:set(boothTextData.TextColorIndex)
 			strokeColorIndex:set(boothTextData.StrokeColorIndex)
 			
 			fontIndex:set(boothTextData.FontIndex)
-			--styleIndex:set(boothTextData.StyleIndex)
-			--weightIndex:set(boothTextData.WeightIndex)
 			
-			strokeIndex:set(boothTextData.StrokeThicknessIndex)
+			strokeOpacity:set(boothTextData.StrokeOpacity)
 		end):catch(function(err: string?)
 			warn("Failed to load booth text data: " .. tostring(err))
 		end)
 	end)
 end
 
+local function manageDropdown(
+	toggleButton: GuiButton,
+	dropdown: CanvasGroup,
+	shown: Fusion.Value<boolean>,
+	showSize: UDim2, hideSize: UDim2
+)
+	table.insert(tempScope, toggleButton.MouseButton1Click:Connect(function()
+		shown:set(not peek(shown))
+	end))
+	tempScope:Hydrate(dropdown) {
+		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
+			return use(shown) and 0 or 1
+		end), TweenInfo.new(0.5)),
+		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
+			return use(shown) and showSize or hideSize
+		end), 25, 0.8),
+	}
+end
+
 local function manageFonts()
-	local fontsDropdownShown: Fusion.Value<boolean> = tempScope:Value(false)
-	local textWeightDropdownShown: Fusion.Value<boolean> = tempScope:Value(false)
+	local shownValues: { [string]: Fusion.Value<boolean> } = {
+		["Fonts"] = tempScope:Value(false),
+		["Weight"] = tempScope:Value(false),
+		["Stroke"] = tempScope:Value(false),
+	}
+	
+	tempScope:Computed(function(use: Fusion.Use)
+		shownValues["Fonts"]:set(use)
+	end)
 	
 	local fontContents: ScrollingFrame = mainFrame.FontsDropdown.Contents
 	local lineWeightContents: ScrollingFrame = mainFrame.LineWeightDropdown.Contents
@@ -100,33 +119,62 @@ local function manageFonts()
 	
 	local textEditButtonsFrame: Frame = mainFrame.Side.TextEditButtons
 	
-	table.insert(tempScope, mainFrame.Middle.Fonts.MouseButton1Click:Connect(function()
-		fontsDropdownShown:set(not peek(fontsDropdownShown))
+	local fontDropdown: CanvasGroup = mainFrame:FindFirstChild("FontsDropdown")
+	local fontStartSize = fontDropdown.Size
+	manageDropdown(
+		mainFrame:FindFirstChild("Middle"):FindFirstChild("Fonts"),
+		fontDropdown,
+		shownValues["Fonts"],
+		fontStartSize, UDim2.fromScale(fontStartSize.X.Scale, 0)
+	)
+	
+	local textWeightDropdown: CanvasGroup = mainFrame:FindFirstChild("LineWeightDropdown")
+	local weightStartSize = textWeightDropdown.Size
+	manageDropdown(
+		textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight"),
+		textWeightDropdown,
+		shownValues["Weight"],
+		weightStartSize, UDim2.fromScale(weightStartSize.X.Scale, 0)
+	)
+	
+	local strokeDropdown: CanvasGroup = mainFrame:FindFirstChild("StrokeDropdown")
+	local strokeStartSize = strokeDropdown.Size
+	manageDropdown(
+		textEditButtonsFrame:FindFirstChild("Stroke"):FindFirstChild("Stroke"),
+		mainFrame:FindFirstChild("StrokeDropdown"),
+		shownValues["Stroke"],
+		strokeStartSize, UDim2.fromScale(0, strokeStartSize.Y.Scale)
+	)
+	
+	--[[
+	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight").MouseButton1Click:Connect(function()
+		shownValues["Weight"],:set(not peek(shownValues["Weight"],))
 	end))
-	tempScope:Hydrate(mainFrame.FontsDropdown) {
+	tempScope:Hydrate(mainFrame.LineWeightDropdown) {
 		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(fontsDropdownShown) and 0 or 1
+			return use(shownValues["Weight"],) and 0 or 1
 		end), TweenInfo.new(0.5)),
 		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(fontsDropdownShown) and UDim2.fromScale(0.245, 0.526) or UDim2.fromScale(0.245, 0)
+			return use(shownValues["Weight"],) and UDim2.fromScale(0.245, 0.474) or UDim2.fromScale(0.245, 0)
 		end), 25, 0.8),
 	}
 	
 	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight").MouseButton1Click:Connect(function()
-		textWeightDropdownShown:set(not peek(textWeightDropdownShown))
+		shownValues["Weight"],:set(not peek(shownValues["Weight"],))
 	end))
 	tempScope:Hydrate(mainFrame.LineWeightDropdown) {
 		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(textWeightDropdownShown) and 0 or 1
+			return use(shownValues["Weight"],) and 0 or 1
 		end), TweenInfo.new(0.5)),
 		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(textWeightDropdownShown) and UDim2.fromScale(0.245, 0.474) or UDim2.fromScale(0.245, 0)
+			return use(shownValues["Weight"],) and UDim2.fromScale(0.245, 0.474) or UDim2.fromScale(0.245, 0)
 		end), 25, 0.8),
 	}
+	]]
 	
 	tempScope:Hydrate(mainFrame.Middle.Fonts.Arrow.Icon) {
 		Rotation = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(fontsDropdownShown) and 0 or -90
+			return use(shownValues["Fonts"]) and 0 or -90
 		end), 25, 0.8)
 	}
 	tempScope:Hydrate(mainFrame:FindFirstChild("Middle"):FindFirstChild("Fonts"):FindFirstChild("SelectedFont")) {
@@ -143,14 +191,6 @@ local function manageFonts()
 			styleIndex:set(1)
 		else
 			styleIndex:set(peek(styleIndex) + 1)
-		end
-	end))
-	
-	table.insert(tempScope, textEditButtonsFrame:FindFirstChild("Stroke"):FindFirstChild("Stroke").MouseButton1Click:Connect(function()
-		if peek(strokeIndex) + 1 > #strokeThicknessRange then
-			strokeIndex:set(1)
-		else
-			strokeIndex:set(peek(strokeIndex) + 1)
 		end
 	end))
 	
@@ -302,15 +342,15 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	local function updateBoard()
 		interactingService:InteractAttempt("Booths", "SetTextAttempt", peek(text),
 			colors[peek(textColorIndex)], colors[peek(strokeColorIndex)],
-			fonts[peek(fontIndex)], strokeThicknessRange[peek(strokeIndex)],
+			fonts[peek(fontIndex)], peek(strokeOpacity),
 			peek(textColorIndex), peek(strokeColorIndex),
-			peek(fontIndex), peek(strokeIndex)
+			peek(fontIndex)
 		)
 	end
 	tempScope:Observer(textColorIndex):onChange(updateBoard)
 	tempScope:Observer(strokeColorIndex):onChange(updateBoard)
 	tempScope:Observer(fontIndex):onChange(updateBoard)
-	tempScope:Observer(strokeIndex):onChange(updateBoard)
+	--tempScope:Observer(strokeOpacity):onChange(updateBoard)
 	
 	tempScope:Hydrate(textBox) {
 		FontFace = tempScope:Computed(function(use: Fusion.Use)

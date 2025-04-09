@@ -109,7 +109,7 @@ local function setTextAttempt(
 	textColor: Color3, strokeColor: Color3,
 	font: Font, strokeThickness: number,
 	textColorIndex: number, strokeColorIndex: number,
-	fontIndex: number, strokeIndex: number
+	fontIndex: number, strokeOpacity: number
 )
 	if not text or not textColor or not strokeColor or not font or not strokeThickness then
 		return
@@ -132,7 +132,7 @@ local function setTextAttempt(
 	
 	playerDataService:SetValue(player, "BoothTextData", {
 		TextColorIndex = textColorIndex, StrokeColorIndex = strokeColorIndex,
-		FontIndex = fontIndex, StrokeThicknessIndex = strokeIndex,
+		FontIndex = fontIndex, StrokeOpacity = strokeOpacity,
 	})
 	playerBoothData.textData = {
 		text = text,
