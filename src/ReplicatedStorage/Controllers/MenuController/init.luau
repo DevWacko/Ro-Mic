@@ -29,7 +29,7 @@ local menus: { [ScreenGui]: {
 	shown: Fusion.Value<boolean>,
 } } = {}
 
-function MenuController:SetMenu(taggedMenu: ScreenGui)
+function MenuController:SetMenu(taggedMenu: ScreenGui, ...)
 	local menuData = menus[taggedMenu]
 	if not menuData then
 		return
@@ -39,6 +39,17 @@ function MenuController:SetMenu(taggedMenu: ScreenGui)
 	local currentMenuData = menus[currentMenu]
 	if currentMenuData then
 		currentMenuData.shown:set(false)
+	end
+	
+	for _, menuMod in self.moduleHandler.requiredModules do
+		if menuMod.MenuName ~= taggedMenu.Name then
+			continue
+		end
+		
+		local shown = menuMod.shown
+		if shown then
+			shown(taggedMenu, ...)
+		end
 	end
 	
 	menuData.shown:set(true)

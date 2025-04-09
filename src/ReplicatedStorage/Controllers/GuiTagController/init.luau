@@ -40,7 +40,7 @@ function GuiTagController:KnitInit()
 		local tag = module.Tag
 		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
 		CollectionService:GetInstanceRemovedSignal(tag):Connect(function(taggedObject: Instance)
-			self.modulesHandler:CallModulesFunction("taggedObjectRemoved", taggedObject)
+			handler:CallModulesFunction("taggedObjectRemoved", taggedObject)
 		end)
 		for _, taggedObject: Instance in CollectionService:GetTagged(tag) do
 			added(taggedObject)

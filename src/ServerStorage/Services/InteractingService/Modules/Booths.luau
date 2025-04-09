@@ -192,7 +192,10 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 end
 
 Booths.taggedObjectRemoved = function(taggedObject: Instance)
-	local id = taggedObject:GetAttribute("Id")
+	local id = table.find(boothModels, taggedObject)
+	if not id then
+		return
+	end
 	
 	local boothData = serverBoothsData[id]
 	if boothData then
