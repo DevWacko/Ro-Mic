@@ -33,6 +33,8 @@ local messages: { [string]: {
 	}
 } } = {}
 
+local rnd = Random.new()
+
 local boards: { [string]: Instance }  = {}
 
 local function fireNewMessages(player: Player)
@@ -91,6 +93,8 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 	
 	messages[boardId][tostring(playerSent.UserId)] = {
 		boardId = boardId,
+		
+		rotation = rnd:NextNumber(MessageBoardsData.Gui.Message.ROTATION_RANGE_MIN, MessageBoardsData.Gui.Message.ROTATION_RANGE_MAX),
 		
 		position = position,
 		size = size,

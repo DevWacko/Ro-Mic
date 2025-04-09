@@ -30,6 +30,8 @@ type Message = {
 	
 	position: UDim2,
 	size: UDim2,
+	rotation: number,
+	
 	text: string,
 }
 
@@ -227,11 +229,13 @@ MessageBoards.init = function()
 							local bgColor: Fusion.Value<Color3> = messageScope:Value(
 								isNewMessage and MessageBoardsData.Gui.Message.CAN_WRITE_COLOR or MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR
 							)
+							local rotation: Fusion.Value<number> = messageScope:Value(0)
 							
 							local text = `<b>{Players:GetPlayerByUserId(tonumber(userId)).Name}:</b> {messageData.text}`
 							local message = messageScope:New "TextLabel" {
 								Position = messageData.position,
 								Size = getTextFlexSize(text),
+								Rotation = messageScope:Spring(rotation, 5, 0.7),
 								
 								Font = MessageBoardsData.Gui.Message.FONT,
 								TextSize = MessageBoardsData.Gui.Message.FONT_SIZE,
@@ -245,6 +249,7 @@ MessageBoards.init = function()
 									messageScope:New "UICorner" { CornerRadius = MessageBoardsData.Gui.Message.CORNER_RADIUS },
 								},
 							}
+							rotation:set(messageData.rotation)
 							bgColor:set(MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR)
 							return userId, message
 						end),

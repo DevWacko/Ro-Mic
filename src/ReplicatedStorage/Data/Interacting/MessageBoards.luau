@@ -9,11 +9,14 @@ MessageBoards.Gui = {
 		
 		CANNOT_WRITE_COLOR = Color3.new(1, 0, 0.4),
 		CAN_WRITE_COLOR = Color3.new(0, 1, 0.46),
-		MESSAGE_BG_COLOR = Color3.new(0.9, 0.9, 0.9),
+		MESSAGE_BG_COLOR = Color3.fromRGB(240, 240, 240),
 		
-		CORNER_RADIUS = UDim.new(0, 10),
+		CORNER_RADIUS = UDim.new(0, 0),
 		
-		FONT = Enum.Font.BuilderSans,
+		ROTATION_RANGE_MIN = -3,
+		ROTATION_RANGE_MAX = 3,
+		
+		FONT = Enum.Font.Nunito,
 		FONT_SIZE = 14,
 	}
 }
