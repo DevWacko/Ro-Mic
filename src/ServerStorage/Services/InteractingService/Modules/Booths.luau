@@ -12,6 +12,8 @@ local Knit = require(ExPackages.Knit)
 
 local BoothsData = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 
+local filterString = require(ServerStorage.Source.Utils.filterString)
+
 -- Main Module --
 local Booths = {
 	Tag = "Booth",
@@ -142,7 +144,7 @@ local function setTextAttempt(
 	})
 	local boothStylingData = BoothsData.BoothStyling
 	playerBoothData.textData = {
-		text = text,
+		text = filterString(player, text),
 		textColor = boothStylingData.COLORS[textColorIndex], strokeColor = boothStylingData.COLORS[strokeColorIndex],
 		font = boothStylingData.FONTS[fontIndex], weight = boothStylingData.WEIGHTS[weightIndex], style = boothStylingData.STYLES[styleIndex],
 		strokeOpacity = strokeOpacity,

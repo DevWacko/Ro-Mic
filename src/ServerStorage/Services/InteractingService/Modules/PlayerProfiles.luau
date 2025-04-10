@@ -13,6 +13,8 @@ local PlayerProfiles = {
 -- Local --
 local service
 
+local playerHumanoidDescription: { [Player]: HumanoidDescription } = {}
+
 PlayerProfiles.init = function()
 	service = Knit.GetService("InteractingService")
 end
@@ -24,12 +26,22 @@ PlayerProfiles.playerAdded = function(player: Player)
 			player:RemoveTag(PlayerProfiles.Tag)
 		end)
 		player:AddTag(PlayerProfiles.Tag)
+		
+		local desc = hum:FindFirstChildWhichIsA("HumanoidDescription")
+		if not playerHumanoidDescription[player] and desc then
+			playerHumanoidDescription[player] = desc:Clone()
+		end
 	end
 	player.CharacterAdded:Connect(charAdded)
 end
 
 PlayerProfiles.playerRemoving = function(player: Player)
 	player:RemoveTag(PlayerProfiles.Tag)
+	
+	if playerHumanoidDescription[player] then
+		playerHumanoidDescription[player]:Destroy()
+		playerHumanoidDescription[player] = nil
+	end
 end
 
 local function validTargetPlayer(player: Player)
@@ -55,11 +67,12 @@ local function cloneOutfitAttempt(player: Player, targetPlayer: Player)
 	if not char or not targetChar then
 		return
 	end
-	local hum = char:FindFirstChildWhichIsA("Humanoid")
-	if not hum or hum.Health <= 0 then
+	local hum, targetHum = char:FindFirstChildWhichIsA("Humanoid"), targetChar:FindFirstChildWhichIsA("Humanoid")
+	if not hum or hum.Health <= 0 or not targetHum or targetHum.Health <= 0 then
 		return
 	end
-	local targetHumDesc = hum:FindFirstChildWhichIsA("HumanoidDescription")
+	
+	local targetHumDesc = playerHumanoidDescription[targetPlayer]
 	if not targetHumDesc then
 		return
 	end
@@ -69,11 +82,21 @@ local function cloneOutfitAttempt(player: Player, targetPlayer: Player)
 	hum:ApplyDescription(targetHumDesc)
 end
 
+local function mutePlayerAttempt(player: Player, targetPlayer: Player)
+	if not validTargetPlayer(targetPlayer) then
+		return
+	end
+	
+	--voiceChatSDK.mutePlayerAsync(targetPlayer)
+end
+
 PlayerProfiles.sentInteractAttempt = function(player: Player, interaction: string, ...)
 	if interaction == "ViewProfileAttempt" then
 		return viewProfileAttempt(player, ...)
 	elseif interaction == "CloneOutfitAttempt" then
 		return cloneOutfitAttempt(player, ...)
+	elseif interaction == "MutePlayerAttempt" then
+		return mutePlayerAttempt(player, ...)
 	end
 end
 

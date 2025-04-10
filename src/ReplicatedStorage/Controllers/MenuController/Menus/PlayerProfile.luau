@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 -- Containers --
 local ExPackages = ReplicatedStorage.ExPackages
@@ -25,14 +26,18 @@ local tempScope = Fusion:scoped()
 table.insert(scope, tempScope)
 
 local playerViewing: Fusion.Value<Player>?
+local mouseInMenu: Fusion.Value<boolean>?
 
+local menu: ScreenGui
 local mainFrame: Frame
 local infoFrame: Frame
 local actionButtonsFrame: Frame
 
+local controller
 local interactingService
 
 PlayerProfile.init = function()
+	controller = Knit.GetController("MenuController")
 	interactingService = Knit.GetService("InteractingService")
 end
 
@@ -83,17 +88,45 @@ local function manageActions()
 		end
 		interactingService:InteractAttempt("PlayerProfiles", "CloneOutfitAttempt", targetPlayer)
 	end))
+	table.insert(tempScope, actionButtonsFrame:FindFirstChild("MutePlayer"):FindFirstChild("MutePlayer").MouseButton1Click:Connect(function()
+		local targetPlayer: Player? = peek(playerViewing)
+		if not targetPlayer then
+			return
+		end
+		--voiceChatSDK.mutePlayerAsync(targetPlayer)
+		--interactingService:InteractAttempt("PlayerProfiles", "MutePlayerAttempt", targetPlayer)
+	end))
 end
 
-PlayerProfile.menuLoaded = function(menu: ScreenGui)
+local function manageClosing()
+	table.insert(tempScope, mainFrame.MouseEnter:Connect(function()
+		mouseInMenu:set(true)
+	end))
+	table.insert(tempScope, mainFrame.MouseLeave:Connect(function()
+		mouseInMenu:set(false)
+	end))
+	table.insert(tempScope, controller.MenuClosed:Connect(function()
+		mouseInMenu:set(false)
+	end))
+	table.insert(tempScope, UserInputService.InputBegan:Connect(function(input, _gameProcessedEvent)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 and not peek(mouseInMenu) then
+			controller:CloseMenu(menu)
+		end
+	end))
+end
+
+PlayerProfile.menuLoaded = function(loadedMenu: ScreenGui)
 	tempScope:doCleanup()
 	
 	playerViewing = tempScope:Value(nil)
+	mouseInMenu = tempScope:Value(false)
 	
+	menu = loadedMenu
 	mainFrame = menu:FindFirstChild("Main")
 	infoFrame = mainFrame:FindFirstChild("Info")
 	actionButtonsFrame = mainFrame:FindFirstChild("Actions"):FindFirstChild("Buttons")
 	
+	manageClosing()
 	manageActions()
 	manageInfo()
 end

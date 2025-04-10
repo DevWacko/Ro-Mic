@@ -44,6 +44,10 @@ PlayerProfiles.init = function()
 	
 	interactingService = Knit.GetService("InteractingService")
 	
+	menuController.MenuClosed:Connect(function()
+		playerViewing:set(nil)
+	end)
+	
 	local tagCon: RBXScriptConnection?
 	scope:Observer(playerViewing):onChange(function()
 		local playerProfileMenu: ScreenGui = player:WaitForChild("PlayerGui"):WaitForChild("PlayerProfile")
@@ -65,7 +69,6 @@ PlayerProfiles.init = function()
 	
 	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
 			if peek(playerViewing) == peek(playerSelected) then
 				playerViewing:set(nil)
 			else
@@ -100,8 +103,7 @@ PlayerProfiles.init = function()
 			playerSelected:set(nil)
 			return
 		end
-		
-		local playerHit: Player? = Players:GetPlayerFromCharacter(result.Instance.Parent)
+		local playerHit: Player? = Players:GetPlayerFromCharacter(result.Instance.Parent.Parent)
 		if not playerHit or not playerHit:HasTag(PlayerProfiles.Tag) then
 			playerSelected:set(nil)
 			return

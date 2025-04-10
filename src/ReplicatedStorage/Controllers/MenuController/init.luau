@@ -8,6 +8,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
 local Fusion = require(ExPackages.Fusion)
+local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)
 
 local peek = Fusion.peek
@@ -16,6 +17,7 @@ local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Controller
 local MenuController = Knit.CreateController { Name = "MenuController" }
+MenuController.MenuClosed = Signal.new()
 
 -- Types --
 type Self = typeof(MenuController)
@@ -57,7 +59,7 @@ end
 
 function MenuController:CloseMenu(taggedMenu: ScreenGui)
 	local menuData = menus[taggedMenu]
-	if not menuData then
+	if not menuData or not peek(menuData.shown) then
 		return
 	end
 	menuData.shown:set(false)
@@ -65,6 +67,8 @@ function MenuController:CloseMenu(taggedMenu: ScreenGui)
 	if peek(self.currentMenu) == taggedMenu then
 		self.currentMenu:set(nil)
 	end
+	
+	self.MenuClosed:Fire(taggedMenu)
 end
 
 function taggedMenuAdded(taggedMenu: ScreenGui)

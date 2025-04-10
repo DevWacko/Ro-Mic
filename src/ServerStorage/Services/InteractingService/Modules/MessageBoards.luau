@@ -2,6 +2,7 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local TextService = game:GetService("TextService")
 
 -- Containers --
@@ -12,6 +13,8 @@ local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
 local MessageBoardsData = require(ReplicatedStorage.Source.Data.Interacting.MessageBoards)
+
+local filterString = require(ServerStorage.Source.Utils.filterString)
 
 -- Main Module --
 local MessageBoards = {
@@ -41,36 +44,6 @@ local function fireNewMessages(player: Player)
 	service.Client.Interaction:Fire(player, "MessageBoards", "MessagesChanged", messages)
 end
 
-local function getFilterResult(text, fromUserId)
-	local filterResult
-	local success, errorMessage = pcall(function()
-		filterResult = TextService:FilterStringAsync(text, fromUserId)
-	end)
-
-	if success then
-		return filterResult
-	else
-		warn("Error generating TextFilterResult:", errorMessage)
-	end
-end
-
-local function onInputReceived(player, text)
-	if text ~= "" then
-		local filterResult = getFilterResult(text, player.UserId)
-		if filterResult then
-			local success, filteredText = pcall(function()
-				return filterResult:GetNonChatStringForBroadcastAsync()
-			end)
-
-			if not success then
-				return ""
-			end
-			
-			return filteredText
-		end
-	end
-end
-
 local function submitMessageAttempt(playerSent: Player, boardId: string, position: UDim2, size: UDim2, text: string)
 	if not boardId or not position or not size or not text then
 		return
@@ -89,7 +62,7 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 	if string.len(text) <= 0 or string.len(text) >  MessageBoardsData.Gui.Message.MAX_CHARACTERS then
 		return
 	end
-	text = onInputReceived(playerSent, text)
+	text = filterString(playerSent, text)
 	
 	messages[boardId][tostring(playerSent.UserId)] = {
 		boardId = boardId,
