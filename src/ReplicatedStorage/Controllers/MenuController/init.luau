@@ -1,5 +1,6 @@
 -- Services --
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -7,116 +8,145 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
+local Data = require(ReplicatedStorage.Source.Data.Gui.Menus)
+
 local Fusion = require(ExPackages.Fusion)
 local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)
 
+local OnChange = Fusion.OnChange
 local peek = Fusion.peek
 
 local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
 -- Controller
 local MenuController = Knit.CreateController { Name = "MenuController" }
+MenuController.MenuOpened = Signal.new()
 MenuController.MenuClosed = Signal.new()
 
 -- Types --
 type Self = typeof(MenuController)
 
--- Constants --
-local TAG = "Menu"
-
 -- Local --
-local menus: { [ScreenGui]: {
-	scope: Fusion.Scope,
-	shown: Fusion.Value<boolean>,
-} } = {}
+local player = Players.LocalPlayer
 
-function MenuController:SetMenu(taggedMenu: ScreenGui, ...)
-	local menuData = menus[taggedMenu]
-	if not menuData then
+local scope = Fusion:scoped()
+
+local menus: { [string]: { instance: ScreenGui, scope: Fusion.Scope, shown: Fusion.Value<boolean> } } = {}
+local menuIds: { [string]: string } = {}
+
+function MenuController:SetMenu(menuName: string)
+	self.currentMenuId:set(menuIds[menuName])
+end
+
+function MenuController:CloseMenu(menuName: string)
+	local id = menuIds[menuName]
+	menus[id].shown:set(false)
+	if peek(self.currentMenuId) == id then
+		self.currentMenuId:set(nil)
+	end
+	
+	self.MenuClosed:Fire(menuName)
+end
+
+function MenuController:ObserveMenuClosing(menuName: string, callback: () -> ())
+	return self.MenuClosed:Connect(function(closedMenuName: string)
+		if closedMenuName ~= menuName then
+			return
+		end
+		callback()
+	end)
+end
+
+function MenuController:ObserveMenuOpening(menuName: string, callback: () -> ())
+	return self.MenuOpened:Connect(function(openedMenuName: string)
+		if openedMenuName ~= menuName then
+			return
+		end
+		callback()
+	end)
+end
+
+function MenuController:GetCurrentMenu()
+	local currentMenuData = menus[peek(self.currentMenuId)]
+	return currentMenuData and currentMenuData.instance or nil
+end
+
+function MenuController:ManageNewMenu(taggedMenu: ScreenGui)
+	if not taggedMenu:IsDescendantOf(player) then
 		return
 	end
 	
-	local currentMenu = peek(self.currentMenu)
-	local currentMenuData = menus[currentMenu]
-	if currentMenuData then
-		currentMenuData.shown:set(false)
-	end
+	local tempScope = Fusion:scoped()
+	local shown: Fusion.Value<boolean> = tempScope:Value(taggedMenu.Enabled)
+	
+	tempScope:Hydrate(taggedMenu) {
+		Enabled = tempScope:Computed(function(use: Fusion.Use)
+			return use(shown)
+		end),
+	}
+	
+	local id = HttpService:GenerateGUID()
+	taggedMenu:SetAttribute("Id", id)
+	menus[id] = {
+		instance = taggedMenu,
+		
+		scope = tempScope,
+		shown = shown,
+	}
+	menuIds[taggedMenu.Name] = id
 	
 	for _, menuMod in self.moduleHandler.requiredModules do
 		if menuMod.MenuName ~= taggedMenu.Name then
 			continue
 		end
 		
-		local shown = menuMod.shown
-		if shown then
-			shown(taggedMenu, ...)
-		end
-	end
-	
-	menuData.shown:set(true)
-end
-
-function MenuController:CloseMenu(taggedMenu: ScreenGui)
-	local menuData = menus[taggedMenu]
-	if not menuData or not peek(menuData.shown) then
-		return
-	end
-	menuData.shown:set(false)
-	
-	if peek(self.currentMenu) == taggedMenu then
-		self.currentMenu:set(nil)
-	end
-	
-	self.MenuClosed:Fire(taggedMenu)
-end
-
-function taggedMenuAdded(taggedMenu: ScreenGui)
-	if not taggedMenu:IsDescendantOf(Players.LocalPlayer) then
-		return
-	end
-	
-	local scope = Fusion:scoped()
-	local shown: Fusion.Value<boolean> = scope:Value(taggedMenu.Enabled)
-	
-	scope:Observer(shown):onBind(function()
-		taggedMenu.Enabled = peek(shown)
-	end)
-	
-	menus[taggedMenu] = {
-		scope = scope,
-		shown = shown,
-	}
-	
-	for _, mod in MenuController.moduleHandler.requiredModules do
-		if mod.MenuName ~= taggedMenu.Name then
-			continue
-		end
-		local menuLoaded = mod.menuLoaded
+		local menuLoaded = menuMod.menuLoaded
 		if menuLoaded then
 			menuLoaded(taggedMenu)
 		end
 	end
 end
 
-function taggedMenuRemoved(taggedMenu: ScreenGui)
-	local menuData = menus[taggedMenu]
+function MenuController:ManageMenuRemoving(taggedMenu: ScreenGui)
+	if not taggedMenu:IsDescendantOf(player) then
+		return
+	end
+	
+	local id = taggedMenu:GetAttribute("Id")
+	local menuData = menus[id]
 	if menuData then
-		menuData.scope:doCleanup()
-		menus[taggedMenu] = nil
+		--menuData.scope:doCleanup()
+		menus[id] = nil
+	end
+	
+	if menuIds[taggedMenu.Name] then
+		menuIds[taggedMenu.Name] = nil
 	end
 end
 
 function MenuController:KnitInit()
 	self.moduleHandler = ModuleHandler.new(script.Menus)
 	
-	local scope = Fusion:scoped()
-	self.currentMenu = scope:Value(nil) :: Fusion.Value<ScreenGui?>
+	self.currentMenuId = scope:Value(nil) :: Fusion.Value<string?>
+	scope:Observer(self.currentMenuId):onChange(function()
+		local newId = peek(self.currentMenuId)
+		if newId then
+			local menuData = menus[newId]
+			menuData.shown:set(true)
+			
+			self.MenuOpened:Fire(menuData.instance)
+		end
+	end)
 	
-	CollectionService:GetInstanceAddedSignal(TAG):Connect(taggedMenuAdded)
-	CollectionService:GetInstanceRemovedSignal(TAG):Connect(taggedMenuRemoved)
-	for _, taggedMenu in CollectionService:GetTagged(TAG) do
-		taggedMenuAdded(taggedMenu)
+	CollectionService:GetInstanceAddedSignal(Data.MENU_TAG):Connect(function(taggedMenu)
+		self:ManageNewMenu(taggedMenu)
+	end)
+	CollectionService:GetInstanceRemovedSignal(Data.MENU_TAG):Connect(function(taggedMenu)
+		self:ManageMenuRemoving(taggedMenu)
+	end)
+	for _, taggedMenu in CollectionService:GetTagged(Data.MENU_TAG) do
+		self:ManageNewMenu(taggedMenu)
 	end
 end
 

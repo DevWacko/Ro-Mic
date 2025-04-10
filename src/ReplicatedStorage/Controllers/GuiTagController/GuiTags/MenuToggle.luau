@@ -8,9 +8,11 @@ local ExPackages = ReplicatedStorage.ExPackages
 local Fusion = require(ExPackages.Fusion)
 local Knit = require(ExPackages.Knit)
 
+local peek = Fusion.peek
+
 -- Main Module --
-local CloseButton = {
-	Tag = "CloseButton"
+local MenuToggle = {
+	Tag = "MenuToggle"
 }
 
 -- Local --
@@ -18,32 +20,32 @@ local scopes: { [GuiButton]: Fusion.Scope } = {}
 
 local menuController
 
-CloseButton.init =function()
+MenuToggle.init =function()
 	menuController = Knit.GetController("MenuController")
 end
 
-CloseButton.taggedObjectAdded = function(taggedObject: GuiObject)
+MenuToggle.taggedObjectAdded = function(taggedObject: GuiObject)
 	local scope = Fusion:scoped()
 	scopes[taggedObject] = scope
 	
 	table.insert(scope, taggedObject.MouseButton1Click:Connect(function()
-		local targetMenuVal: ObjectValue? = taggedObject:FindFirstChild("Menu")
-		if not targetMenuVal then
-			return
+		local menuName = taggedObject:GetAttribute("Menu")
+		
+		local currentMenu: ScreenGui? = menuController:GetCurrentMenu()
+		local isOpen = currentMenu and currentMenu.Name == menuName
+		if isOpen then
+			menuController:CloseMenu(menuName)
+		elseif not isOpen then
+			menuController:SetMenu(menuName)
 		end
-		local menu = targetMenuVal.Value
-		if not menu or not menu:IsA("ScreenGui") then
-			return
-		end
-		menuController:CloseMenu(menu)
 	end))
 end
 
-CloseButton.taggedObjectRemoved = function(taggedObject: GuiObject)
+MenuToggle.taggedObjectRemoved = function(taggedObject: GuiObject)
 	if scopes[taggedObject] then
 		scopes[taggedObject]:doCleanup()
 		scopes[taggedObject] = nil
 	end
 end
 
-return CloseButton
+return MenuToggle

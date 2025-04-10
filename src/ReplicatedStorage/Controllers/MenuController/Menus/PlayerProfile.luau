@@ -33,11 +33,15 @@ local mainFrame: Frame
 local infoFrame: Frame
 local actionButtonsFrame: Frame
 
+local voiceChatController
 local controller
+
 local interactingService
 
 PlayerProfile.init = function()
+	voiceChatController = Knit.GetController("VoiceChatController")
 	controller = Knit.GetController("MenuController")
+	
 	interactingService = Knit.GetService("InteractingService")
 end
 
@@ -93,8 +97,7 @@ local function manageActions()
 		if not targetPlayer then
 			return
 		end
-		--voiceChatSDK.mutePlayerAsync(targetPlayer)
-		--interactingService:InteractAttempt("PlayerProfiles", "MutePlayerAttempt", targetPlayer)
+		voiceChatController:SetPlayerMuted(targetPlayer, not voiceChatController:IsMuted(targetPlayer))
 	end))
 end
 
@@ -105,12 +108,12 @@ local function manageClosing()
 	table.insert(tempScope, mainFrame.MouseLeave:Connect(function()
 		mouseInMenu:set(false)
 	end))
-	table.insert(tempScope, controller.MenuClosed:Connect(function()
+	table.insert(tempScope, controller:ObserveMenuClosing("PlayerProfile", function()
 		mouseInMenu:set(false)
 	end))
 	table.insert(tempScope, UserInputService.InputBegan:Connect(function(input, _gameProcessedEvent)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 and not peek(mouseInMenu) then
-			controller:CloseMenu(menu)
+			controller:CloseMenu("PlayerProfile")
 		end
 	end))
 end

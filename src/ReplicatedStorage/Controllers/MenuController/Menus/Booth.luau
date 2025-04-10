@@ -290,17 +290,17 @@ Booth.menuLoaded = function(menu: ScreenGui)
 		BoothsData.BoothStyling.FONTS[tonumber(fontButton.Name)] = font
 	end
 	
-	table.insert(tempScope, menu:GetPropertyChangedSignal("Enabled"):Connect(function()
-		if not menu:GetAttribute("Enabled") then
-			interactingController.Interacted:Fire("Booths", "CancelEdit")
-		end
+	print("OBSERVING")
+	table.insert(tempScope, controller:ObserveMenuClosing("TextBooth", function()
+		print("CLOSED")
+		interactingController.Interacted:Fire("Booths", "CancelEdit")
 	end))
 	
 	tempScope:Hydrate(mainFrame.Side.UnclaimBooth) {
 		[OnEvent("MouseButton1Click")] = function()
 			interactingService:InteractAttempt("Booths", "Unclaim"):andThen(function(success: boolean?)
 				if success then
-					controller:CloseMenu(menu)
+					controller:CloseMenu("TextBooth")
 				end
 			end)
 		end,

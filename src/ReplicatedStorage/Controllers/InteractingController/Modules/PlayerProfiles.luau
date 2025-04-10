@@ -9,6 +9,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
 local Fusion = require(ExPackages.Fusion)
+local Trove = require(ExPackages.Trove)
 local Knit = require(ExPackages.Knit)
 
 local peek = Fusion.peek
@@ -44,26 +45,29 @@ PlayerProfiles.init = function()
 	
 	interactingService = Knit.GetService("InteractingService")
 	
-	menuController.MenuClosed:Connect(function()
-		playerViewing:set(nil)
-	end)
+	local viewingTrove = Trove.new()
 	
 	local tagCon: RBXScriptConnection?
 	scope:Observer(playerViewing):onChange(function()
+		viewingTrove:Clean()
+		
 		local playerProfileMenu: ScreenGui = player:WaitForChild("PlayerGui"):WaitForChild("PlayerProfile")
+		viewingTrove:Add(menuController:ObserveMenuClosing("PlayerProfile", function()
+			playerViewing:set(nil)
+		end))
 		
 		local currentViewing: Player = peek(playerViewing)
 		if currentViewing then
 			tagCon = currentViewing.CharacterRemoving:Connect(function()
 				playerViewing:set(nil)
 			end)
-			menuController:SetMenu(playerProfileMenu, peek(playerViewing))
+			menuController:SetMenu("PlayerProfile", peek(playerViewing))
 		else
 			if tagCon then
 				tagCon:Disconnect()
 				tagCon = nil
 			end
-			menuController:CloseMenu(playerProfileMenu)
+			menuController:CloseMenu("PlayerProfile")
 		end
 	end)
 	

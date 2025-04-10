@@ -121,7 +121,7 @@ local function onBoothInteracted(booth: Model)
 				return
 			end
 			editing:set(true)
-			menuController:SetMenu(player.PlayerGui:WaitForChild("TextBooth"))
+			menuController:SetMenu("TextBooth")
 		end)
 	elseif not ownerUserId then
 		controller.InteractingService:InteractAttempt("Booths", "Claim", boothId)

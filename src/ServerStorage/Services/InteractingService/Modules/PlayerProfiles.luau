@@ -82,21 +82,11 @@ local function cloneOutfitAttempt(player: Player, targetPlayer: Player)
 	hum:ApplyDescription(targetHumDesc)
 end
 
-local function mutePlayerAttempt(player: Player, targetPlayer: Player)
-	if not validTargetPlayer(targetPlayer) then
-		return
-	end
-	
-	--voiceChatSDK.mutePlayerAsync(targetPlayer)
-end
-
 PlayerProfiles.sentInteractAttempt = function(player: Player, interaction: string, ...)
 	if interaction == "ViewProfileAttempt" then
 		return viewProfileAttempt(player, ...)
 	elseif interaction == "CloneOutfitAttempt" then
 		return cloneOutfitAttempt(player, ...)
-	elseif interaction == "MutePlayerAttempt" then
-		return mutePlayerAttempt(player, ...)
 	end
 end
 
