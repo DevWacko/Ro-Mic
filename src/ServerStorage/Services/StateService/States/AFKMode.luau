@@ -4,8 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
+-- Containers --
+local ExPackages = ReplicatedStorage.ExPackages
+
 -- Modules --
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Fusion = require(ExPackages.Fusion)
+local Knit = require(ExPackages.Knit)
 
 local MainData = require(ServerStorage.Source.Data.Character.AFKMode)
 
@@ -25,7 +29,11 @@ local playerAfkData: { [Player]: {
 	lastMove: number,
 } } = {}
 
+local animationService
+
 AFKMode.init = function()
+	animationService = Knit.GetService("AnimationService")
+	
 	RunService.Heartbeat:Connect(function()
 		for player, lastMove in playersLastMove do
 			local afk = playerAfkData[player].afk
@@ -73,7 +81,6 @@ AFKMode.playerAdded = function(player: Player)
 	scope:Observer(afk):onChange(function()
 		local isAfk = peek(afk)
 		
-		
 		local char = player.Character
 		if not char then
 			return
@@ -83,14 +90,16 @@ AFKMode.playerAdded = function(player: Player)
 			return
 		end
 		
-		
 		local oldParticle: Attachment? = head:FindFirstChild("Zzz")
 		if oldParticle then
 			oldParticle:Destroy()
 		end
 		
 		if isAfk then
+			animationService:PlayAnimation(player, MainData.AFK_ANIMATION_PATH)
 			ReplicatedStorage.Assets.Particles.AFK.Zzz:Clone().Parent = head
+		else
+			animationService:StopAnimation(player, MainData.AFK_ANIMATION_PATH)
 		end
 		
 		local faceDecal = head:FindFirstChild("face")

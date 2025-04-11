@@ -1,6 +1,8 @@
 -- Main Module --
 local Emotes = { MenuName = "" }
 
+-- Local --
+
 Emotes.shown = function(menu: ScreenGui, ...)
 	
 end
