@@ -22,7 +22,6 @@ local function onInputReceived(player, text)
 			local success, filteredText = pcall(function()
 				return filterResult:GetNonChatStringForBroadcastAsync()
 			end)
-			print(text, "FILTERED TO", filteredText)
 			if not success then
 				return ""
 			end

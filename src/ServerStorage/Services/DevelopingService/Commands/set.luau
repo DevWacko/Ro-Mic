@@ -11,7 +11,6 @@ local Command = {
 }
 
 function Command.Trigger(player: Player, words: {string})
-	print(words)
 	Knit.GetService("PlayerDataService"):SetValue(player, words[1], tonumber(words[2]))
 	return true
 end

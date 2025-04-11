@@ -35,18 +35,40 @@ local scope = Fusion:scoped()
 local menus: { [string]: { instance: ScreenGui, scope: Fusion.Scope, shown: Fusion.Value<boolean> } } = {}
 local menuIds: { [string]: string } = {}
 
-function MenuController:SetMenu(menuName: string)
+function MenuController:SetMenu(menuName: string, ...)
 	self.currentMenuId:set(menuIds[menuName])
+	self:CallMenuFunction(menuName, "shown", ...)
 end
 
-function MenuController:CloseMenu(menuName: string)
+function MenuController:OpenMenu(menuName: string, ...)
+	local id = menuIds[menuName]
+	menus[id].shown:set(true)
+	
+	self:CallMenuFunction(menuName, "shown", ...)
+	self.MenuOpened:Fire(menuName)
+end
+
+function MenuController:CloseMenu(menuName: string, ...)
 	local id = menuIds[menuName]
 	menus[id].shown:set(false)
 	if peek(self.currentMenuId) == id then
 		self.currentMenuId:set(nil)
 	end
 	
+	self:CallMenuFunction(menuName, "hidden", ...)
 	self.MenuClosed:Fire(menuName)
+end
+
+function MenuController:CallMenuFunction(menuName: string, functionKey: string, ...)
+	for otherMenuName, mod in self.moduleHandler.requiredModules do
+		if otherMenuName ~= menuName then
+			continue
+		end
+		local func = mod[functionKey]
+		if func then
+			func(...)
+		end
+	end
 end
 
 function MenuController:ObserveMenuClosing(menuName: string, callback: () -> ())
@@ -65,6 +87,19 @@ function MenuController:ObserveMenuOpening(menuName: string, callback: () -> ())
 		end
 		callback()
 	end)
+end
+
+function MenuController:IsOpen(menuName: string)
+	local id = menuIds[menuName]
+	if not id then
+		return false
+	end
+	local menuData = menus[id]
+	if not menuData then
+		return false
+	end
+	
+	return peek(menuData.shown)
 end
 
 function MenuController:GetCurrentMenu()

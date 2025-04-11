@@ -29,16 +29,17 @@ Slider.taggedObjectAdded = function(taggedObject: GuiObject)
 	local handle: GuiButton = taggedObject:FindFirstChild("Handle")
 	
 	local handleStartY = handle.Position.Y
-	local startX = UDim.new(peek(taggedObject:GetAttribute("Value")) / peek(taggedObject:GetAttribute("Max")))
+	
+	local startX = UDim.new(taggedObject:GetAttribute("Value") / taggedObject:GetAttribute("Max"))
 	local handlePos: Fusion.Value<UDim2> = scope:Value(UDim2.new(startX, handleStartY))
 	
 	local fill: GuiObject? = taggedObject:FindFirstChild("Fill")
 	local fillSize: Fusion.Value<UDim2>? = fill and scope:Value(UDim2.fromScale(startX, 1)) or nil
 	
-	local progress = peek(taggedObject:GetAttribute("Value"))
+	local progress = taggedObject:GetAttribute("Value")
 	
 	local function setSize(value: number)
-		progress = peek(taggedObject:GetAttribute("Max")) * value
+		progress = taggedObject:GetAttribute("Max") * value
 		
 		handlePos:set(UDim2.new(UDim.new(value, 0), handleStartY))
 		fillSize:set(UDim2.new(value, 0, 1, 0))

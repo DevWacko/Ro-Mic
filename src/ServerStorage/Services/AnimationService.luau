@@ -10,6 +10,8 @@ local Animations = ReplicatedStorage.Assets.Animations
 -- Modules --
 local Knit = require(ExPackages.Knit)
 
+local getAnimationFromPath = require(ReplicatedStorage.Source.Utils.Character.getAnimationFromPath)
+
 -- Service --
 local AnimationService = Knit.CreateService { Name = "AnimationService" }
 
@@ -20,18 +22,7 @@ type Self = typeof(AnimationService)
 local controllerIds: { [string]: AnimationController } = {}
 local controllerTracks: { [string]: { [string]: AnimationTrack } } = {}
 
-function AnimationService:GetAnimationFromPath(path: string)
-	local animation: Animation = Animations
-	for _, pathPoint in string.split(path, "/") do
-		animation = animation:FindFirstChild(pathPoint)
-		if animation == nil then
-			warn("Animation not found at path: " .. path)
-		end
-	end
-	return animation
-end
-
-function getPlayerAnimator(player: Model)
+function getPlayerAnimator(player: Model): Animator?
 	local char = player.Character
 	if not char then
 		return
@@ -43,16 +34,40 @@ function getPlayerAnimator(player: Model)
 	return hum:FindFirstChildWhichIsA("Animator")
 end
 
-function AnimationService:PlayAnimation(player: Player, path: string)
+function AnimationService.Client:PlayAnimationAttempt(player: Player, path: string, looped: boolean?)
+	return self.Server:PlayAnimation(player, path, looped)
+end
+
+function AnimationService:PlayAnimation(player: Player, path: string, looped: boolean?)
+	if not path or typeof(path) ~= "string" then
+		warn("Path parameter must be a string")
+		return
+	end
+	if looped ~= nil and typeof(looped) ~= "boolean" then
+		warn("Looped parameter must be a boolean")
+		return
+	end
+	
 	local animator = getPlayerAnimator(player)
 	if not animator then
 		return
 	end
 	
-	local track = animator:LoadAnimation(self:GetAnimationFromPath(path))
+	for _, oldTrack in animator:GetPlayingAnimationTracks() do
+		oldTrack:Stop()
+	end
+	
+	local track = animator:LoadAnimation(getAnimationFromPath(path))
+	if looped then
+		track.Looped = true
+	end
 	track:Play()
 	
 	controllerTracks[animator:GetAttribute("Id")][path] = track
+end
+
+function AnimationService.Client:StopAnimationAttempt(player: Player, path: string)
+	return self.Server:StopAnimation(player, path)
 end
 
 function AnimationService:StopAnimation(player: Player, path: string)
@@ -66,6 +81,24 @@ function AnimationService:StopAnimation(player: Player, path: string)
 		track:Stop()
 		controllerTracks[animator:GetAttribute("Id")][path] = nil
 	end
+end
+
+function AnimationService.Client:TrackIsPlaying(player: Player, path: string)
+	return self.Server:TrackIsPlaying(player, path)
+end
+
+function AnimationService:TrackIsPlaying(player: Player, path: string)
+	if not path or typeof(path) ~= "string" then
+		warn("Path parameter must be a string")
+		return false
+	end
+	
+	local animator = getPlayerAnimator(player)
+	if not animator then
+		return false
+	end
+	
+	return controllerTracks[animator:GetAttribute("Id")][path] ~= nil
 end
 
 function AnimationService:SetupNewCharacter(player: Player, char: Model)

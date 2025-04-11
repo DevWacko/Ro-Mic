@@ -209,7 +209,6 @@ Booths.taggedObjectRemoved = function(taggedObject: Instance)
 end
 
 Booths.playerAdded = function(player: Player)
-	print("PLAYER, ADDED", player)
 	updateBoothsForPlayer(player)
 end
 

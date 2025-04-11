@@ -96,7 +96,7 @@ AFKMode.playerAdded = function(player: Player)
 		end
 		
 		if isAfk then
-			animationService:PlayAnimation(player, MainData.AFK_ANIMATION_PATH)
+			animationService:PlayAnimation(player, MainData.AFK_ANIMATION_PATH, true)
 			ReplicatedStorage.Assets.Particles.AFK.Zzz:Clone().Parent = head
 		else
 			animationService:StopAnimation(player, MainData.AFK_ANIMATION_PATH)
