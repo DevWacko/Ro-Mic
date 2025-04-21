@@ -72,9 +72,9 @@ local function validValueMatch(player: Player, key: string, value: number)
 	return true
 end
 
--- local function validProfile(player: Player)
--- 	return PlayerDataService.profiles[player] ~= nil
--- end
+function PlayerDataService:CallModuleEvent(player: Player, moduleKey: string, eventName: string, ...)
+	return self.modulesHandler.requiredModules[moduleKey].eventCalled(player, eventName, ...)
+end
 
 function PlayerDataService:ObserveValue(player: Player, key: string, callback: (newValue: any) -> ()): RBXScriptConnection
 	return self.PlayerValueChanged:Connect(function(otherPlayer: Player, changedKey: string, changedValue: any)
@@ -108,11 +108,15 @@ function PlayerDataService:SetValue(player: Player, key: string, value: any)
 	self.Client.ValueChanged:Fire(player, key, playerData[key])
 end
 
+function PlayerDataService.Client:GetValueFromOther(player: Player, otherPlayer: Player, key: string)
+	return self.Server:GetValue(otherPlayer, key)
+end
 function PlayerDataService.Client:GetValue(player: Player, key: string)
 	return self.Server:GetValue(player, key)
 end
-
 function PlayerDataService:GetValue(player: Player, key: string)
+	assert(player:IsA("Player"), "Player parameter must be a Player")
+	
 	if not validKey(player, key) then
 		return
 	end

@@ -100,7 +100,7 @@ function RagdollService:ResetAttempt(player: Player)
 	end
 	resetDebounces[player] = true
 	
-	task.delay(Players.RespawnTime, function()
+	task.delay(0.1, function()
 		if not player then
 			return
 		end

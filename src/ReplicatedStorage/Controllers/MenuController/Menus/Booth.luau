@@ -6,6 +6,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
 local Fusion = require(ExPackages.Fusion)
+local Trove = require(ExPackages.Trove)
 local Knit = require(ExPackages.Knit)
 
 local OnEvent, OnChange = Fusion.OnEvent, Fusion.OnChange
@@ -25,6 +26,7 @@ local playerDataService
 
 local mainScope: Fusion.Scope = Fusion:scoped()
 local tempScope: Fusion.Scope = Fusion:scoped()
+local _trove = Trove.new()
 
 local savedIndexes = {
 	textColor = 1,
@@ -52,6 +54,7 @@ Booth.init = function()
 	
 	playerDataService.ProfileLoaded:Connect(function()
 		playerDataService:GetValue("BoothTextData"):andThen(function(boothTextData)
+			-- Saved --
 			savedIndexes.textColor = boothTextData.TextColorIndex
 			savedIndexes.strokeColor = boothTextData.StrokeColorIndex
 			
@@ -60,6 +63,16 @@ Booth.init = function()
 			savedIndexes.style = boothTextData.StyleIndex
 			
 			savedIndexes.strokeOpacity = boothTextData.StrokeOpacity
+			
+			-- Current --
+			currentIndexes.textColorIndex:set(savedIndexes.textColor)
+			currentIndexes.strokeColorIndex:set(savedIndexes.strokeColor)
+			
+			currentIndexes.fontIndex:set(savedIndexes.font)
+			currentIndexes.weightIndex:set(savedIndexes.weight)
+			currentIndexes.styleIndex:set(savedIndexes.style)
+			
+			currentIndexes.strokeOpacity:set(savedIndexes.strokeOpacity)
 		end):catch(function(err: string?)
 			warn("Failed to load booth text data: " .. tostring(err))
 		end)
@@ -272,6 +285,7 @@ end
 
 Booth.menuLoaded = function(menu: ScreenGui)
 	tempScope:doCleanup()
+	_trove:Clean()
 	
 	currentIndexes = {
 		textColorIndex = tempScope:Value(savedIndexes.textColor),
@@ -304,7 +318,7 @@ Booth.menuLoaded = function(menu: ScreenGui)
 		BoothsData.BoothStyling.FONTS[tonumber(fontButton.Name)] = font
 	end
 	
-	table.insert(tempScope, controller:ObserveMenuClosing("TextBooth", function()
+	_trove:Add(controller:ObserveMenuClosing("TextBooth", function()
 		interactingController.Interacted:Fire("Booths", "CancelEdit")
 	end))
 	

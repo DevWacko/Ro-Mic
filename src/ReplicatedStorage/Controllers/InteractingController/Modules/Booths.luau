@@ -42,6 +42,8 @@ local userIdString = tostring(player.UserId)
 local menuController
 local controller
 
+local interactingService
+
 local boothTempScopes: { [string]: Fusion.Scope } = {}
 
 local clientBoothsData: { [string]: {
@@ -69,39 +71,51 @@ local function boothDataLoaded()
 	end
 end
 
+local function manageBoothDataUpdate(sentBoothsData)
+	for boothId, boothData in sentBoothsData do
+		local clientBoothData = clientBoothsData[boothId]
+		if not clientBoothData then
+			clientBoothData = {}
+			
+			local scope = Fusion:scoped()
+			clientBoothData.scope = scope
+			
+			clientBoothData.ownerUserId = scope:Value(boothData.ownerUserId)
+			clientBoothData.textData = scope:Value(boothData.textData)
+			
+			clientBoothsData[boothId] = clientBoothData
+		end
+		
+		local newOwnerUserId = boothData.ownerUserId
+		clientBoothData.ownerUserId:set(newOwnerUserId)
+		if newOwnerUserId then
+			clientBoothData.textData:set(boothData.textData or Data.Defaults.DESCRIPTION_DATA)
+		else
+			clientBoothData.textData:set(Data.Defaults.DESCRIPTION_DATA)
+		end
+		
+		boothDataLoaded()
+	end
+end
+
 Booths.init = function()
 	menuController = Knit.GetController("MenuController")
 	controller = Knit.GetController("InteractingController")
+	
+	interactingService = Knit.GetService("InteractingService")
+	interactingService:InteractAttempt("Booths", "GetBoothsData"):andThen(function(loadedBoothData: {}?)
+		if not loadedBoothData then
+			return
+		end
+		manageBoothDataUpdate(loadedBoothData)
+	end)
 	
 	controller:ObserveInteraction("Booths", function(interaction: string, ...)
 		local data = { ... }
 		if interaction == "CancelEdit" then
 			editing:set(false)
 		elseif interaction == "UpdateBoothsData" then
-			for boothId, boothData in data[1] do
-				local clientBoothData = clientBoothsData[boothId]
-				if not clientBoothData then
-					clientBoothData = {}
-					
-					local scope = Fusion:scoped()
-					clientBoothData.scope = scope
-					
-					clientBoothData.ownerUserId = scope:Value(boothData.ownerUserId)
-					clientBoothData.textData = scope:Value(boothData.textData)
-					
-					clientBoothsData[boothId] = clientBoothData
-				end
-				
-				local newOwnerUserId = boothData.ownerUserId
-				clientBoothData.ownerUserId:set(newOwnerUserId)
-				if newOwnerUserId then
-					clientBoothData.textData:set(boothData.textData)
-				else
-					clientBoothData.textData:set(Data.Defaults.DESCRIPTION_DATA)
-				end
-				
-				boothDataLoaded()
-			end
+			manageBoothDataUpdate(data[1])
 		end
 	end)
 end
@@ -169,7 +183,7 @@ Booths.taggedObjectAdded = function(taggedObject: Instance)
 		local textData = peek(boothData.textData)
 		
 		local descriptionLabel: TextLabel = descPart:WaitForChild("SurfaceGui"):FindFirstChild("Description")
-		descriptionLabel.Text = textData.text
+		descriptionLabel.Text = textData.text or ""
 		descriptionLabel.TextColor3 = textData.textColor
 		descriptionLabel.FontFace = Font.new(textData.font.Family, textData.weight, textData.style)
 		

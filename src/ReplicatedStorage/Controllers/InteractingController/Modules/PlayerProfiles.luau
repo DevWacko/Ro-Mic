@@ -61,13 +61,13 @@ PlayerProfiles.init = function()
 			tagCon = currentViewing.CharacterRemoving:Connect(function()
 				playerViewing:set(nil)
 			end)
-			menuController:SetMenu("PlayerProfile", peek(playerViewing))
+			menuController:SetMenu("PlayerProfile", peek(playerViewing), true)
 		else
 			if tagCon then
 				tagCon:Disconnect()
 				tagCon = nil
 			end
-			menuController:CloseMenu("PlayerProfile")
+			menuController:CloseMenu("PlayerProfile", true)
 		end
 	end)
 	
@@ -107,7 +107,11 @@ PlayerProfiles.init = function()
 			playerSelected:set(nil)
 			return
 		end
-		local playerHit: Player? = Players:GetPlayerFromCharacter(result.Instance.Parent.Parent)
+		local charHit: Model? = result.Instance:FindFirstAncestorWhichIsA("Model")
+		if not charHit then
+			return
+		end
+		local playerHit: Player? = Players:GetPlayerFromCharacter(charHit)
 		if not playerHit or not playerHit:HasTag(PlayerProfiles.Tag) then
 			playerSelected:set(nil)
 			return

@@ -27,8 +27,30 @@ function InteractingController:ObserveInteraction(key: string, handler: (any) ->
 	end)
 end
 
+function InteractingController:SetupClasses()
+	local requiredInteractClasses = {}
+	for _, interactClassMod: ModuleScript in script.Classes:GetChildren() do
+		requiredInteractClasses[interactClassMod.Name] = require(interactClassMod)
+	end
+	
+	for tag, interactClass in requiredInteractClasses do
+		local function added(taggedObject: Instance)
+			table.insert(self.interactClasses, interactClass.new(taggedObject))
+		end
+		
+		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
+		CollectionService:GetInstanceRemovedSignal(tag):Connect(function(taggedObject: Instance)
+			self.modulesHandler:CallModulesFunction("taggedObjectRemoved", taggedObject)
+		end)
+		for _, taggedObject: Instance in CollectionService:GetTagged(tag) do
+			added(taggedObject)
+		end
+	end
+end
+
 function InteractingController:KnitInit()
 	self.modulesHandler = ModuleHandler.new(script.Modules)
+	self.interactClasses = {}
 	for name, module: { Tag: string } in self.modulesHandler.requiredModules do
 		if name == "Module" then
 			continue
@@ -50,6 +72,7 @@ function InteractingController:KnitInit()
 			added(taggedObject)
 		end
 	end
+	self:SetupClasses()
 	
 	self.InteractingService = Knit.GetService("InteractingService")
 	self.InteractingService.Interaction:Connect(function(key: string, ...)

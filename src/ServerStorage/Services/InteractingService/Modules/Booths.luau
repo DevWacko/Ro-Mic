@@ -60,6 +60,7 @@ local function claimAttempt(player: Player, booth: Model)
 		return
 	end
 	data.ownerUserId = userIdString
+	data.textData = BoothsData.Defaults.DESCRIPTION_DATA
 	
 	playerBooths[userIdString] = booth
 	
@@ -174,6 +175,8 @@ Booths.sentInteractAttempt = function(player: Player, interaction: string, ...)
 		return unclaimAttempt(player)
 	elseif interaction == "SetTextAttempt" then
 		return setTextAttempt(player, ...)
+	elseif interaction == "GetBoothsData" then
+		return serverBoothsData
 	end
 end
 

@@ -10,6 +10,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
 local Fusion = require(ExPackages.Fusion)
+local Trove = require(ExPackages.Trove)
 local Knit = require(ExPackages.Knit)
 
 local peek = Fusion.peek
@@ -20,81 +21,101 @@ local Data = require(ReplicatedStorage.Source.Data.Interacting.PlayerProfiles)
 local PlayerProfile = { MenuName = "PlayerProfile" }
 
 -- Local --
+local player = Players.LocalPlayer
+
 local scope = Fusion:scoped()
+local _trove = Trove.new()
 
 local tempScope = Fusion:scoped()
 table.insert(scope, tempScope)
-
-local playerViewing: Fusion.Value<Player>?
-local mouseInMenu: Fusion.Value<boolean>?
 
 local menu: ScreenGui
 local mainFrame: Frame
 local infoFrame: Frame
 local actionButtonsFrame: Frame
 
+local canClickOut = false
+
 local voiceChatController
 local controller
 
 local interactingService
+local playerDataService
 
 PlayerProfile.init = function()
 	voiceChatController = Knit.GetController("VoiceChatController")
 	controller = Knit.GetController("MenuController")
 	
 	interactingService = Knit.GetService("InteractingService")
+	playerDataService = Knit.GetService("PlayerDataService")
 end
 
-PlayerProfile.shown = function(menu: ScreenGui, targetPlayer: Player?)
+PlayerProfile.shown = function(targetPlayer: Player?, canClickOutToggle: boolean?)
 	if not targetPlayer then
 		return
 	end
-	playerViewing:set(targetPlayer)
+	if canClickOutToggle ~= nil then
+		canClickOut = canClickOutToggle
+	end
+	PlayerProfile.playerViewing:set(targetPlayer)
+end
+
+PlayerProfile.closed = function(canClickOutToggle: boolean?)
+	if canClickOutToggle ~= nil then
+		canClickOut = canClickOutToggle
+	end
+	PlayerProfile.playerViewing:set(nil)
 end
 
 local function manageInfo()
-	tempScope:Observer(playerViewing):onChange(function()
-		local targetPlayer: Player = peek(playerViewing)
+	tempScope:Observer(PlayerProfile.playerViewing):onChange(function()
+		local targetPlayer: Player = peek(PlayerProfile.playerViewing)
 		infoFrame:FindFirstChild("DisplayName").Text = targetPlayer and targetPlayer.DisplayName or ""
 		infoFrame:FindFirstChild("Username").Text = targetPlayer and `@{targetPlayer.Name}` or ""
-		
-		local bioLabel: TextLabel = infoFrame:FindFirstChild("Bio"):FindFirstChild("Public")
-		bioLabel.Visible = true
-		bioLabel.Text = targetPlayer and string.format(Data.Defaults.BioReplacment, targetPlayer.Name) or ""
 		
 		local avatarImageLabel: ImageLabel = infoFrame:FindFirstChild("PlayerAvatar"):FindFirstChild("Avatar")
 		avatarImageLabel.Image = ""
 		
-		local image: string?
-		local success, err = pcall(function()
-			image = Players:GetUserThumbnailAsync(targetPlayer.UserId, Enum.ThumbnailType.AvatarThumbnail, Enum.ThumbnailSize.Size420x420)
-		end)
-		if success and image then
-			avatarImageLabel.Image = image
-		else
-			warn("There was an error getting avatar image: ", err)
+		if targetPlayer then
+			playerDataService:GetValueFromOther(targetPlayer, "Settings"):andThen(function(playerSettings)
+				local bioText: string? = playerSettings.Bio
+				
+				local bioLabel: TextLabel = infoFrame:FindFirstChild("Bio"):FindFirstChild("Public")
+				bioLabel.Visible = true
+				bioLabel.Text = bioText and bioText or string.format(Data.Defaults.BioReplacment, targetPlayer.Name)
+			end)
+			
+			local image: string?
+			local success, err = pcall(function()
+				image = Players:GetUserThumbnailAsync(targetPlayer.UserId, Enum.ThumbnailType.AvatarThumbnail, Enum.ThumbnailSize.Size420x420)
+			end)
+			if success and image then
+				avatarImageLabel.Image = image
+			else
+				warn("There was an error getting avatar image: ", err)
+			end
 		end
 	end)
 end
 
 local function manageActions()
 	table.insert(tempScope, actionButtonsFrame:FindFirstChild("AddPlayer"):FindFirstChild("Add").MouseButton1Click:Connect(function()
-		local targetPlayer: Player? = peek(playerViewing)
-		if not targetPlayer then
+		local targetPlayer: Player? = peek(PlayerProfile.playerViewing)
+		if not targetPlayer or targetPlayer == player then
 			return
 		end
 		StarterGui:SetCore("PromptSendFriendRequest", targetPlayer)
 	end))
 	table.insert(tempScope, actionButtonsFrame:FindFirstChild("CopyOutfit"):FindFirstChild("Clone").MouseButton1Click:Connect(function()
-		local targetPlayer: Player? = peek(playerViewing)
-		if not targetPlayer then
+		local targetPlayer: Player? = peek(PlayerProfile.playerViewing)
+		if not targetPlayer or targetPlayer == player  then
 			return
 		end
 		interactingService:InteractAttempt("PlayerProfiles", "CloneOutfitAttempt", targetPlayer)
 	end))
 	table.insert(tempScope, actionButtonsFrame:FindFirstChild("MutePlayer"):FindFirstChild("MutePlayer").MouseButton1Click:Connect(function()
-		local targetPlayer: Player? = peek(playerViewing)
-		if not targetPlayer then
+		local targetPlayer: Player? = peek(PlayerProfile.playerViewing)
+		if not targetPlayer or targetPlayer == player  then
 			return
 		end
 		voiceChatController:SetPlayerMuted(targetPlayer, not voiceChatController:IsMuted(targetPlayer))
@@ -102,27 +123,27 @@ local function manageActions()
 end
 
 local function manageClosing()
-	table.insert(tempScope, mainFrame.MouseEnter:Connect(function()
-		mouseInMenu:set(true)
-	end))
-	table.insert(tempScope, mainFrame.MouseLeave:Connect(function()
-		mouseInMenu:set(false)
-	end))
-	table.insert(tempScope, controller:ObserveMenuClosing("PlayerProfile", function()
-		mouseInMenu:set(false)
-	end))
-	table.insert(tempScope, UserInputService.InputBegan:Connect(function(input, _gameProcessedEvent)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 and not peek(mouseInMenu) then
+	local InSelection = false
+	
+	table.insert(scope, mainFrame.MouseEnter:Connect(function() InSelection = true end))
+	table.insert(scope, mainFrame.MouseLeave:Connect(function() InSelection = false end))
+	
+	table.insert(scope, UserInputService.InputBegan:Connect(function(input)
+		if mainFrame.Visible and not InSelection and input.UserInputType == Enum.UserInputType.MouseButton1 and canClickOut then
 			controller:CloseMenu("PlayerProfile")
 		end
+	end))
+	
+	_trove:Add(controller:ObserveMenuClosing("PlayerProfile", function()
+		InSelection = false
 	end))
 end
 
 PlayerProfile.menuLoaded = function(loadedMenu: ScreenGui)
 	tempScope:doCleanup()
+	_trove:Clean()
 	
-	playerViewing = tempScope:Value(nil)
-	mouseInMenu = tempScope:Value(false)
+	PlayerProfile.playerViewing = tempScope:Value(nil)
 	
 	menu = loadedMenu
 	mainFrame = menu:FindFirstChild("Main")

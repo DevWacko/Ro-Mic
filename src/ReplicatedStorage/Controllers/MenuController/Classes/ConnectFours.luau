@@ -1,0 +1,397 @@
+local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local ChipTemps: Folder = ReplicatedStorage:WaitForChild("Assets").Gui.Templates.Chips
+
+local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Trove = require(ReplicatedStorage.ExPackages.Trove)
+local Knit = require(ReplicatedStorage.ExPackages.Knit)
+
+local OnEvent = Fusion.OnEvent
+local peek = Fusion.peek
+
+local InteractingController = Knit.GetController("InteractingController")
+local InteractingService = Knit.GetService("InteractingService")
+local MenuController = Knit.GetController("MenuController")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local ConnectFoursMenu = {
+	Data = require(ReplicatedStorage.Source.Data.Interacting.ConnectFours),
+}
+ConnectFoursMenu.__index = ConnectFoursMenu
+
+function ConnectFoursMenu.new(menu: ScreenGui)
+	local self = setmetatable({}, ConnectFoursMenu)
+	
+	self.Scope = Fusion:scoped()
+	self.Trove = Trove.new()
+	
+	self.GameScope = Fusion:scoped()
+	table.insert(self.Scope, self.GameScope)
+	
+	local mainFrame: Frame = menu.Main
+	local sideFrame: Frame = mainFrame.SideFrame
+	
+	self.ChipsFolder = mainFrame.Chips :: Folder
+	
+	-- Players --
+	self.LastPlayers = self.Scope:Value({})
+	self.CurrentPlayers = self.Scope:Value({})
+	self.ReadyPlayers = self.Scope:Value({})
+	
+	self.MatchMakingStarted = tick()
+	self.CountdownTime = self.Scope:Value(self.Data.KICK_TIME)
+	self.CountdownConnection = nil :: RBXScriptConnection?
+	
+	self.GameInProgress = self.Scope:Value(false)
+	self.TurnIndex = self.Scope:Value(nil)
+	self.Winner = self.Scope:Value(nil)
+	
+	self.SelectedColumn = self.Scope:Value(self.Data.START_COLUMN)
+	self.SelectChipPosition = self.Scope:Value(UDim2.new())
+	
+	local columnPadding = UDim.new(0.037, 0)
+	local rowPadding = UDim.new(0.054, 0)
+	local step = 0.0965
+	
+	self.Board = {} :: { [number]: { [number]: { Position: UDim2, Player: string } } }
+	for i=1, self.Data.BOARD_COLUMNS do
+		local column = {}
+		for j=1, self.Data.BOARD_ROWS do
+			column[j] = {
+				Position = UDim2.fromScale((columnPadding.Scale * i) + (step * (i - 1)), (rowPadding.Scale * j) + (step * (j - 1))),
+				Player = "",
+			}
+		end
+		self.Board[i] = column
+	end
+	
+	local chips = self.Data.Chips
+	for i, v in chips do
+		local chip: ImageLabel = ChipTemps:FindFirstChild(v):Clone()
+		self.Scope:Hydrate(chip) {
+			Parent = self.Scope:Computed(function(use: Fusion.Use)
+				return use(self.TurnIndex) == i and self.ChipsFolder or nil
+			end),
+			Position = self.Scope:Spring(self.SelectChipPosition, 35, 0.5),
+		}
+	end
+	
+	self.SelectionSlots = {} :: { [number]: UDim2 }
+	for i, slots in self.Board do
+		self.SelectionSlots[i] = slots[1].Position - UDim2.fromScale(0, 0.1)
+	end
+	self.Scope:Observer(self.SelectedColumn):onBind(function()
+		self.SelectChipPosition:set(self.SelectionSlots[peek(self.SelectedColumn)])
+	end)
+	
+	local playerFramesData = {}
+	local function hydratePlayerFrames()
+		for i, v in playerFramesData do
+			local playerFrame = v.Frame
+			self.Scope:Hydrate(playerFrame.Info.Status) {
+				Text = self.Scope:Computed(function(use: Fusion.Use)
+					return use(v.Player) and `Player {i}` or "Waiting for player..."
+				end)
+			}
+			self.Scope:Hydrate(playerFrame.Info.Username) {
+				Text = self.Scope:Computed(function(use: Fusion.Use)
+					local playerName: string? = use(v.Player)
+					return playerName and playerName or "..."
+				end)
+			}
+			self.Scope:Hydrate(playerFrame.Icon.Ready) {
+				Size = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
+					return use(v.Ready) and UDim2.fromScale(0.6, 0.6) or UDim2.new()
+				end), 25, 0.8),
+			}
+		end
+	end
+	for _, playerFrame in sideFrame.Players:GetChildren() do
+		if not playerFrame:IsA("Frame") then
+			continue
+		end
+		local index = tonumber(string.sub(playerFrame.Name, 7))
+		if not index then
+			continue
+		end
+		playerFramesData[index] = {
+			Frame = playerFrame,
+			Player = self.Scope:Value(nil),
+			Ready = self.Scope:Value(false),
+		}
+	end
+	hydratePlayerFrames()
+	
+	self.Scope:Computed(function(use: Fusion.Use)
+		self:StopCountdown()
+		
+		local currentPlayers = peek(self.CurrentPlayers)
+		local onePlayer = #currentPlayers < 2
+		if #currentPlayers == 0 then
+			self:ResetGame()
+		elseif onePlayer then
+			self.GameInProgress:set(false)
+		end
+		
+		local allPlayersReady = true
+		if onePlayer then
+			allPlayersReady = false
+		end
+		for _, v in currentPlayers do
+			if not peek(self.ReadyPlayers)[v] then
+				allPlayersReady = false
+			end
+		end
+		if allPlayersReady then
+			self:StartGame()
+		else
+			self.CountdownConnection = RunService.Heartbeat:Connect(function()
+				self.CountdownTime:set(self.Data.KICK_TIME - math.clamp(math.floor(tick() - self.MatchMakingStarted), 0, self.Data.KICK_TIME))
+			end)
+			self.GameScope:doCleanup()
+		end
+		for i, v in playerFramesData do
+			local playerName = currentPlayers[i]
+			
+			v.Player:set(playerName)
+			v.Ready:set(use(self.ReadyPlayers)[use(v.Player)])
+		end
+		
+		if table.find(currentPlayers, player.Name) == use(self.TurnIndex) and use(self.GameInProgress) then
+			local lastSlotIndex = nil
+			self.Trove:Add(mouse.Move:Connect(function()
+				local relativeX = (mouse.X - mainFrame.AbsolutePosition.X) / mainFrame.AbsoluteSize.X
+				
+				local closestIndex = 1
+				local closestDist = math.huge
+
+				for i, pos in self.SelectionSlots do
+					local dist = math.abs(pos.X.Scale - relativeX)
+					if dist + self.Data.SELECT_COLUMN_MARGIN < closestDist then
+						closestDist = dist
+						closestIndex = i
+					end
+				end
+				
+				if closestIndex ~= lastSlotIndex then
+					self.SelectedColumn:set(closestIndex)
+					lastSlotIndex = closestIndex
+					InteractingService:InteractAttempt("ConnectFours", "SelectColumn", closestIndex)
+				end
+			end))
+			self.Trove:Add(UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
+				if gameProcessedEvent then
+					return
+				end
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					InteractingService:InteractAttempt("ConnectFours", "DropChip", use(self.SelectedColumn))
+				end
+			end))
+		else
+			self.Trove:Clean()
+		end
+	end)
+	
+	self.Scope:Hydrate(sideFrame:FindFirstChild("Ready/PlayAgain")) {
+		Visible = self.Scope:Computed(function(use: Fusion.Use)
+			local allPlayersIn = #use(self.CurrentPlayers) == #playerFramesData
+			local isReady = use(self.ReadyPlayers)[Players.LocalPlayer.Name] ~= nil
+			return (allPlayersIn and not isReady) or (not isReady and use(self.LastPlayers)[player.Name] ~= nil)
+		end),
+		Text = self.Scope:Computed(function(use: Fusion.Use)
+			return use(self.ReadyPlayers)[player.Name] ~= nil and "Play Again?" or "Play"
+		end),
+		[OnEvent("MouseButton1Down")] = function()
+			InteractingService:InteractAttempt("ConnectFours", "Ready")
+		end,
+	}
+	
+	local winnerCanvas: CanvasGroup = mainFrame.WinnerCanvas
+	local winnerCanvasStartSize = winnerCanvas.Size
+	local winnerCanvasStartPos = winnerCanvas.Position
+	self.Scope:Hydrate(winnerCanvas) {
+		Position = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
+			return use(self.Winner) and winnerCanvasStartPos or winnerCanvasStartPos + UDim2.fromScale(0, 0.3)
+		end), 15, 0.6),
+		Size = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
+			return use(self.Winner) and winnerCanvasStartSize or UDim2.new()
+		end), 15, 0.6),
+		GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
+			return use(self.Winner) and 0 or 1
+		end), TweenInfo.new(0.25)),
+	}
+	self.Scope:Observer(self.Winner):onChange(function()
+		local winner = peek(self.Winner)
+		local isTie = winner == "Tie"
+		local winnerText = isTie and "No more room..." or `@{winner}`
+		winnerCanvas:FindFirstChild("Username").Text = winnerText
+		winnerCanvas:FindFirstChild("GameFinishStatus").Text = isTie and "Tie!" or "WINNER!"
+	end)
+	
+	local countdown: ImageLabel = sideFrame.Countdown
+	self.Scope:Observer(self.GameInProgress):onBind(function()
+		local gameInProgress = peek(self.GameInProgress)
+		sideFrame.GameStatus.Text = gameInProgress and "Game in progress..." or "Match making in progress..."
+		countdown.Visible = not gameInProgress
+		
+		if peek(self.GameInProgress) then
+			task.delay(self.Data.TURN_COOLDOWN, function()
+				self.TurnIndex:set(self.Data.START_PLAYER)
+			end)
+		end
+	end)
+	self.Scope:Observer(self.CountdownTime):onBind(function()
+		countdown.Time.Text = peek(self.CountdownTime)
+	end)
+	
+	table.insert(self.Scope, mainFrame.Lower.Exit.MouseButton1Click:Connect(function()
+		InteractingService:InteractAttempt("ConnectFours", "Leave")
+	end))
+	
+	return self
+end
+
+function ConnectFoursMenu:StartGame()
+	self.GameInProgress:set(true)
+	
+	self:StopCountdown()
+	self:ResetCountdown()
+end
+
+function ConnectFoursMenu:ResetGame()
+	self.GameInProgress:set(false)
+	
+	self.ReadyPlayers:set({})
+	
+	self:StopCountdown()
+	self:ResetCountdown()
+	
+	self.TurnIndex:set(nil)
+	self.Winner:set(nil)
+	
+	self.SelectedColumn:set(self.Data.START_COLUMN)
+	
+	for column, slots in self.Board do
+		for _, slot in slots do
+			slot.Player = ""
+		end
+	end
+end
+
+function ConnectFoursMenu:ResetCountdown()
+	self.CountdownTime:set(self.Data.KICK_TIME)
+	self.MatchMakingStarted = tick()
+end
+
+function ConnectFoursMenu:StopCountdown()
+	if self.CountdownConnection then
+		self.CountdownConnection:Disconnect()
+		self.CountdownConnection = nil
+	end
+end
+
+function ConnectFoursMenu:RecieveData(dataType: string, ...)
+	if dataType == "NewPlayers" then
+		local newPlayers, playersReady = ...
+		
+		self.CurrentPlayers:set(newPlayers)
+		self.ReadyPlayers:set(playersReady)
+		
+		self:ResetCountdown()
+	elseif dataType == "Ready" then
+		local newReadyPlayers = peek(self.ReadyPlayers)
+		newReadyPlayers[...] = true
+		self.ReadyPlayers:set(newReadyPlayers)
+		self.LastPlayers:set(newReadyPlayers)
+	elseif dataType == "Kick" then
+		self:StopCountdown()
+		self:ResetCountdown()
+		
+		local currentPlayers = peek(self.CurrentPlayers)
+		local readyPlayers = peek(self.ReadyPlayers)
+		
+		local playerName = ...
+		if playerName == player.Name then
+			currentPlayers = {}
+			readyPlayers = {}
+			MenuController:CloseMenu("ConnectFours")
+		else
+			for i, v in currentPlayers do
+				if v == playerName then
+					table.remove(currentPlayers, i)
+					break
+				end
+			end
+			for i, _ in readyPlayers do
+				if i == playerName then
+					table.remove(readyPlayers, i)
+					break
+				end
+			end
+		end
+		
+		self.CurrentPlayers:set(currentPlayers)
+		self.ReadyPlayers:set(readyPlayers)
+		
+		if #peek(self.CurrentPlayers) == 0 then
+			self:ResetGame()
+		end
+	elseif dataType == "ColumnSelected" then
+		self.SelectedColumn:set(...)
+	elseif dataType == "DroppedChip" then
+		local playerName, columnIndex = ...
+		
+		local targetPos: UDim2
+		local lastSlot
+		for _, slot in self.Board[columnIndex] do
+			if slot.Player == "" then
+				lastSlot = slot
+				targetPos = slot.Position
+			end
+		end
+		lastSlot.Player = playerName
+		
+		local pos = self.GameScope:Value(self.SelectionSlots[columnIndex])
+		self.GameScope:Hydrate(ChipTemps:FindFirstChild(self.Data.Chips[table.find(peek(self.CurrentPlayers), playerName)]):Clone()) {
+			Parent = self.ChipsFolder,
+			Position = self.GameScope:Tween(pos, TweenInfo.new(1, Enum.EasingStyle.Bounce)),
+		}
+		pos:set(targetPos)
+		
+		local turnIndex = peek(self.TurnIndex)
+		turnIndex += 1
+		if turnIndex > 2 then
+			turnIndex = 1
+		end
+		self.TurnIndex:set(nil)
+		task.delay(self.Data.TURN_COOLDOWN, function()
+			self.TurnIndex:set(turnIndex)
+		end)
+	elseif dataType == "Won" then
+		self.Winner:set(...)
+		task.delay(3, function()
+			--MenuController:CloseMenu("ConnectFours")
+			self:ResetGame()
+		end)
+	elseif dataType == "Tie" then
+		self.Winner:set("Tie")
+		task.delay(3, function()
+			MenuController:CloseMenu("ConnectFours")
+			self:ResetGame()
+		end)
+	end
+end
+
+function ConnectFoursMenu:Destroy()
+	self.Scope:doCleanup()
+	self.Trove:Destroy()
+end
+
+return ConnectFoursMenu

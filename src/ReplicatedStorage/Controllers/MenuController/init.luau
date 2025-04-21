@@ -3,6 +3,7 @@ local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
 -- Containers --
 local ExPackages = ReplicatedStorage.ExPackages
@@ -55,7 +56,7 @@ function MenuController:CloseMenu(menuName: string, ...)
 		self.currentMenuId:set(nil)
 	end
 	
-	self:CallMenuFunction(menuName, "hidden", ...)
+	self:CallMenuFunction(menuName, "closed", ...)
 	self.MenuClosed:Fire(menuName)
 end
 
@@ -69,6 +70,10 @@ function MenuController:CallMenuFunction(menuName: string, functionKey: string, 
 			func(...)
 		end
 	end
+end
+
+function MenuController:SendToClass(menuName: string, dataType: string, ...)
+	self.menuClasses[menuName]:RecieveData(dataType, ...)
 end
 
 function MenuController:ObserveMenuClosing(menuName: string, callback: () -> ())
@@ -102,6 +107,10 @@ function MenuController:IsOpen(menuName: string)
 	return peek(menuData.shown)
 end
 
+function MenuController:GetMenuModule(menuName: string)
+	return self.moduleHandler.requiredModules[menuName]
+end
+
 function MenuController:GetCurrentMenu()
 	local currentMenuData = menus[peek(self.currentMenuId)]
 	return currentMenuData and currentMenuData.instance or nil
@@ -114,6 +123,34 @@ function MenuController:ManageNewMenu(taggedMenu: ScreenGui)
 	
 	local tempScope = Fusion:scoped()
 	local shown: Fusion.Value<boolean> = tempScope:Value(taggedMenu.Enabled)
+	
+	local mainFrame: Frame? = taggedMenu:FindFirstChild("Main")
+	if mainFrame and not taggedMenu:GetAttribute("IgnoreAnimation") then
+		local startPos = mainFrame.Position
+		local startRot = mainFrame.Rotation
+		
+		local hiddenPos = startPos + UDim2.fromScale(0, 0.1)
+		local hiddenRot = function()
+			return startRot - math.random(-15, 15)
+		end
+		
+		local position: Fusion.Value<Udim2> = tempScope:Value(hiddenPos)
+		local posSpring: Fusion.Spring = tempScope:Spring(position, 15, 0.7)
+		
+		local rotation: Fusion.Value<number> = tempScope:Value(hiddenRot())
+		local rotSpring: Fusion.Spring = tempScope:Spring(rotation, 15, 0.7)
+		
+		tempScope:Hydrate(mainFrame) {
+			Position = posSpring,
+			Rotation = rotSpring,
+		}
+		
+		tempScope:Observer(shown):onBind(function()
+			local isShown = peek(shown)
+			position:set(isShown and startPos or hiddenPos)
+			rotation:set(isShown and startRot or hiddenRot())
+		end)
+	end
 	
 	tempScope:Hydrate(taggedMenu) {
 		Enabled = tempScope:Computed(function(use: Fusion.Use)
@@ -130,6 +167,11 @@ function MenuController:ManageNewMenu(taggedMenu: ScreenGui)
 		shown = shown,
 	}
 	menuIds[taggedMenu.Name] = id
+	
+	local menuClass: ModuleScript? = script.Classes:FindFirstChild(taggedMenu.Name)
+	if menuClass then
+		self.menuClasses[menuClass.Name] = require(menuClass).new(taggedMenu)
+	end
 	
 	for _, menuMod in self.moduleHandler.requiredModules do
 		if menuMod.MenuName ~= taggedMenu.Name then
@@ -162,6 +204,7 @@ end
 
 function MenuController:KnitInit()
 	self.moduleHandler = ModuleHandler.new(script.Menus)
+	self.menuClasses = {}
 	
 	self.currentMenuId = scope:Value(nil) :: Fusion.Value<string?>
 	scope:Observer(self.currentMenuId):onChange(function()

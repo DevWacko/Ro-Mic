@@ -21,6 +21,9 @@ PositionToggle.taggedObjectAdded = function(taggedObject: GuiButton)
 	local target: GuiObject = taggedObject:FindFirstChild("Target").Value
 	
 	local shown: Fusion.Value<boolean> = scope:Value(false)
+	scope:Observer(shown):onBind(function()
+		taggedObject:SetAttribute("ShowingTarget", peek(shown))
+	end)
 	scope:Hydrate(target) {
 		Position = scope:Spring(scope:Computed(function(use: Fusion.Use)
 			return use(shown) and taggedObject:GetAttribute("ShownPosition") or taggedObject:GetAttribute("HiddenPosition")
@@ -29,7 +32,6 @@ PositionToggle.taggedObjectAdded = function(taggedObject: GuiButton)
 	
 	table.insert(scope, taggedObject.MouseButton1Click:Connect(function()
 		shown:set(not peek(shown))
-		taggedObject:SetAttribute("ShowingTarget", peek(shown))
 	end))
 end
 

@@ -1,0 +1,10 @@
+{
+  "globIgnorePaths": [
+    "**/*.spec.lua",
+    "**/*.dev.lua"
+  ],
+  "name": "linked-list",
+  "tree": {
+    "$path": "lib"
+  }
+}

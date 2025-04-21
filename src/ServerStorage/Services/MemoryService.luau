@@ -1,14 +1,19 @@
 -- Services --
+local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
 
 -- Containers --
 local ExPackages = ReplicatedStorage.ExPackages
 
 -- Modules --
 local Knit = require(ExPackages.Knit)
+
+local Data = require(ReplicatedStorage.Source.Data.Player.Memory)
 
 -- Service --
 local MemoryService = Knit.CreateService {
@@ -22,11 +27,9 @@ local MemoryService = Knit.CreateService {
 type Self = typeof(MemoryService)
 
 -- Local --
-local serversHashMap = MemoryStoreService:GetHashMap("Servers")
+local serverMaps: { [string]: MemoryStoreSortedMap } = {}
 
--- Constants --
-local EXPIRATION = 600
-local NUM_TEST_ITEMS = 32
+local serverId = RunService:IsStudio() and -1 or game.JobId
 
 function MemoryService:GetServerInfo()
 	local url = "http://ip-api.com/json/"
@@ -37,108 +40,100 @@ function MemoryService:GetServerInfo()
 		table.insert(players, player.UserId)
 	end
 	
+	local placeVersion = game.PlaceVersion
+	local major = 0
+	local minor = math.floor(placeVersion / 1000) % 1000
+	local patch = math.floor(placeVersion / 100) % 10
+	local build = placeVersion % 100
+	
+	local formattedVersion = string.format("Server Version : %d.%d.%d.%d", major, minor, patch, build)
+	
 	return {
-		["Location"] = string.sub(tostring(getasyncinfo),31,37),
-		["BuildVersion"] = game.PlaceVersion,
+		["Location"] = string.match(tostring(getasyncinfo), [["timezone"%s*:%s*"([^"]+)"]]),
+		["BuildVersion"] = formattedVersion,
 		["Players"] = players,
 	}
 end
 
-function MemoryService:AddServer()
-	task.spawn(function()
-		local success, err = pcall(function()
-			serversHashMap:SetAsync(game.JobId, self:GetServerInfo(), 1000)
-		end)
-		if not success then
-			print("Error adding server: " .. err)
-		else
-			print("Server added successfully")
-		end
-	end)
+function MemoryService.Client:GetServersAttempt()
+	return self.Server:GetServers()
 end
 
-function MemoryService:UpdateServer()
+function MemoryService:GetServers()
+	local exclusiveLowerBound = nil
+	local data = {}
+
+	for _, serverType in Data.ServerTypes do
+		-- this loop continues until the end of the map is reached
+		data[serverType] = {}
+		while true do
+			-- get up to a hundred items starting from the current lower bound
+			local items = serverMaps[self.serverType]:GetRangeAsync(Enum.SortDirection.Ascending, 100, exclusiveLowerBound)
+
+			for _, item in ipairs(items) do
+				data[serverType][item.key] = item.value
+			end
+
+			-- if the call returned less than a hundred items it means we've reached the end of the map
+			if #items < 100 then
+				break
+			end
+
+			-- the last retrieved key is the exclusive lower bound for the next iteration
+			exclusiveLowerBound = {}
+			exclusiveLowerBound["key"] = items[#items].key
+			exclusiveLowerBound["sortKey"] = items[#items].sortKey
+		end
+	end
+	
+	return data
+end
+
+function MemoryService:SetServer()
 	local success, err = pcall(function()
-		serversHashMap:UpdateAsync(game.JobId, function()
-			return self:GetServerInfo()
-		end, 1000)
+		serverMaps[self.serverType]:SetAsync(serverId, self:GetServerInfo(), 60 * 60 * 24)
 	end)
 	if not success then
-		print("Error updating server: " .. err)
-	else
-		print("Server updated successfully")
+		warn("Failed to set server data: " .. err)
 	end
 end
 
 function MemoryService:RemoveServer()
-	task.spawn(function()
-		local success, err = pcall(function()
-			serversHashMap:RemoveAsync(game.JobId)
-		end)
-		if not success then
-			print("Error removing server: " .. err)
-		else
-			print("Server removed successfully")
-		end
+	local success, err = pcall(function()
+		serverMaps[self.serverType]:RemoveAsync(serverId)
 	end)
-end
-
--- function MemoryService.Client:GetServersInfoAttempt(player: Player)
--- 	return self.Server:GetServersInfoAttempt(player)
--- end
-
-function MemoryService:GetItemsFromAllPages(pages: MemoryStoreHashMapPages)
-	-- Purely for logging purposes, we track what page number we're on
-	local currentPageNumber = 1
-	local retrievedItems = {}
-
-	while not pages.IsFinished do
-		print(`Getting items on page {currentPageNumber}...`)
-		local items = pages:GetCurrentPage()
-
-		for _, entry in pairs(items) do
-			print(`\t{entry.key}: {entry.value}`)
-			retrievedItems[entry.key] = entry.value
-		end
-
-		-- Advance pages if there are more pages to read
-		if not pages.IsFinished then
-			pages:AdvanceToNextPageAsync()
-			currentPageNumber += 1
-		end
+	if not success then
+		warn("Failed to remove server data: " .. err)
 	end
-	
-	print("Finished reading all pages")
-	return retrievedItems
-end
-
-function MemoryService:GetServersInfoAttempt()
-	return self:GetItemsFromAllPages(serversHashMap:ListItemsAsync(NUM_TEST_ITEMS))
 end
 
 function MemoryService:ManageServers()
-	self:AddServer()
-	game:BindToClose(function()
-		self:RemoveServer()
-	end)
+	-- Players.PlayerAdded:Connect(function(player)
+	-- 	local teleportData = player:GetJoinData()
+	-- 	if teleportData and teleportData.ServerType then
+	-- 		self.serverType = teleportData.ServerType
+	-- 	end
+	-- 	serverMaps[self.serverType] = serverMaps[self.serverType]
+	-- end)
+	for _, serverType in Data.ServerTypes do
+		serverMaps[serverType] = MemoryStoreService:GetSortedMap("ServerInfo_" .. serverType)
+	end
 	
-	Players.PlayerAdded:Connect(function()
-		self:UpdateServer()
-	end)
-	Players.PlayerRemoving:Connect(function()
-		self:UpdateServer()
-	end)
-	
-	task.delay(10, function()
-		while task.wait(30) do
-			for i, v in self:GetServersInfoAttempt() do
-				print(i, v)
-			end
+	task.spawn(function()
+		game:BindToClose(function()
+			self:RemoveServer()
+		end)
+		while true do
+			self:SetServer()
+			task.wait(60)
 		end
 	end)
+	
+	print("SERVER TYPE: ", self.serverType)
 end
 
 function MemoryService:KnitInit()
+	self.serverType = Data.ServerTypes[1]
 	self:ManageServers()
 end
 

@@ -51,7 +51,7 @@ local function setFrame(frameName: string)
 	end
 end
 
-Emotes.hidden = function(menu: ScreenGui, ...)
+Emotes.closed = function(menu: ScreenGui, ...)
 	setFrame(Data.Defaults.START_MENU_NAME)
 end
 

@@ -19,9 +19,9 @@ PlayTime.init = function()
 	service = Knit.GetService("BadgeAwardService")
 end
 
-local function attemptBadge(player: Player, value: number)
+local function attemptBadge(player: Player, value: string)
 	for _, data in Badges.PlayTime do
-		if value < data.Required then
+		if tonumber(value) < data.Required then
 			continue
 		end
 		service:AttemptBadgeAward(player, data.Id)
@@ -30,7 +30,7 @@ end
 
 PlayTime.playerProfileLoaded = function(player: Player)
 	attemptBadge(player, playerDataService:GetValue(player, "PlayTime"))
-	playerDataService:ObserveValue(player, "PlayTime", function(value: number)
+	playerDataService:ObserveValue(player, "PlayTime", function(value: string)
 		attemptBadge(player, value)
 	end)
 end

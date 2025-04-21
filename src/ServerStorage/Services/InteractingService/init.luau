@@ -38,6 +38,7 @@ function InteractingService:InteractAttempt(player: Player, key: string, ...)
 		end
 		return mod.sentInteractAttempt(player, ...)
 	end
+	self.InteractionAttemptSent:Fire(player, key, ...)
 end
 
 function InteractingService:ObserveInteractAttempt(key: string, handler: (any) -> (any))
@@ -47,6 +48,27 @@ function InteractingService:ObserveInteractAttempt(key: string, handler: (any) -
 		end
 		handler(player, ...)
 	end)
+end
+
+function InteractingService:SetupClasses()
+	local requiredInteractClasses = {}
+	for _, interactClassMod: ModuleScript in script.Classes:GetChildren() do
+		requiredInteractClasses[interactClassMod.Name] = require(interactClassMod)
+	end
+	
+	for tag, interactClass in requiredInteractClasses do
+		local function added(taggedObject: Instance)
+			table.insert(self.interactClasses, interactClass.new(taggedObject))
+		end
+		
+		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
+		CollectionService:GetInstanceRemovedSignal(tag):Connect(function(taggedObject: Instance)
+			self.modulesHandler:CallModulesFunction("taggedObjectRemoved", taggedObject)
+		end)
+		for _, taggedObject: Instance in CollectionService:GetTagged(tag) do
+			added(taggedObject)
+		end
+	end
 end
 
 function InteractingService:KnitInit()
@@ -76,6 +98,8 @@ function InteractingService:KnitInit()
 			added(taggedObject)
 		end
 	end
+	self.interactClasses = {}
+	self:SetupClasses()
 	
 	Players.PlayerAdded:Connect(function(player)
 		self.modulesHandler:CallModulesFunction("playerAdded", player)
