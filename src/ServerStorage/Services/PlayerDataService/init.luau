@@ -9,6 +9,7 @@ local ExPackages = ReplicatedStorage.ExPackages
 -- Modules --
 local PlayerDataTemplate = require(ServerStorage.Source.Data.Player.PlayerDataTemplate)
 
+local Promise = require(ExPackages.Promise)
 local Signal = require(ExPackages.Signal)
 local Knit = require(ExPackages.Knit)
 

@@ -41,7 +41,6 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 	self.ChipsFolder = mainFrame.Chips :: Folder
 	
 	-- Players --
-	self.LastPlayers = self.Scope:Value({})
 	self.CurrentPlayers = self.Scope:Value({})
 	self.ReadyPlayers = self.Scope:Value({})
 	
@@ -55,6 +54,7 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 	
 	self.SelectedColumn = self.Scope:Value(self.Data.START_COLUMN)
 	self.SelectChipPosition = self.Scope:Value(UDim2.new())
+	self.ShowPlayAgainText = self.Scope:Value(false)
 	
 	local columnPadding = UDim.new(0.037, 0)
 	local rowPadding = UDim.new(0.054, 0)
@@ -133,33 +133,9 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 		self:StopCountdown()
 		
 		local currentPlayers = peek(self.CurrentPlayers)
-		local onePlayer = #currentPlayers < 2
-		if #currentPlayers == 0 then
-			self:ResetGame()
-		elseif onePlayer then
-			self.GameInProgress:set(false)
-		end
-		
-		local allPlayersReady = true
-		if onePlayer then
-			allPlayersReady = false
-		end
-		for _, v in currentPlayers do
-			if not peek(self.ReadyPlayers)[v] then
-				allPlayersReady = false
-			end
-		end
-		if allPlayersReady then
-			self:StartGame()
-		else
-			self.CountdownConnection = RunService.Heartbeat:Connect(function()
-				self.CountdownTime:set(self.Data.KICK_TIME - math.clamp(math.floor(tick() - self.MatchMakingStarted), 0, self.Data.KICK_TIME))
-			end)
-			self.GameScope:doCleanup()
-		end
+
 		for i, v in playerFramesData do
 			local playerName = currentPlayers[i]
-			
 			v.Player:set(playerName)
 			v.Ready:set(use(self.ReadyPlayers)[use(v.Player)])
 		end
@@ -203,10 +179,10 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 		Visible = self.Scope:Computed(function(use: Fusion.Use)
 			local allPlayersIn = #use(self.CurrentPlayers) == #playerFramesData
 			local isReady = use(self.ReadyPlayers)[Players.LocalPlayer.Name] ~= nil
-			return (allPlayersIn and not isReady) or (not isReady and use(self.LastPlayers)[player.Name] ~= nil)
+			return allPlayersIn and not isReady
 		end),
 		Text = self.Scope:Computed(function(use: Fusion.Use)
-			return use(self.ReadyPlayers)[player.Name] ~= nil and "Play Again?" or "Play"
+			return use(self.ShowPlayAgainText) and "Play Again?" or "Play"
 		end),
 		[OnEvent("MouseButton1Down")] = function()
 			InteractingService:InteractAttempt("ConnectFours", "Ready")
@@ -265,6 +241,15 @@ function ConnectFoursMenu:StartGame()
 	self:ResetCountdown()
 end
 
+function ConnectFoursMenu:StartKickCountdown()
+	if self.CountdownConnection then
+		self.CountdownConnection:Disconnect()
+	end
+	self.CountdownConnection = RunService.Heartbeat:Connect(function()
+		self.CountdownTime:set(self.Data.KICK_TIME - math.clamp(math.floor(tick() - self.MatchMakingStarted), 0, self.Data.KICK_TIME))
+	end)
+end
+
 function ConnectFoursMenu:ResetGame()
 	self.GameInProgress:set(false)
 	
@@ -283,6 +268,8 @@ function ConnectFoursMenu:ResetGame()
 			slot.Player = ""
 		end
 	end
+	
+	self.GameScope:doCleanup()
 end
 
 function ConnectFoursMenu:ResetCountdown()
@@ -297,31 +284,50 @@ function ConnectFoursMenu:StopCountdown()
 	end
 end
 
+function ConnectFoursMenu:PlayAgain()
+	task.delay(3, function()
+		if table.find(peek(self.CurrentPlayers), player.Name) then
+			self.ShowPlayAgainText:set(true)
+		end
+		self:ResetGame()
+		self:StartKickCountdown()
+	end)
+end
+
 function ConnectFoursMenu:RecieveData(dataType: string, ...)
 	if dataType == "NewPlayers" then
-		local newPlayers, playersReady = ...
-		
+		local newPlayers, readyPlayers = ...
 		self.CurrentPlayers:set(newPlayers)
-		self.ReadyPlayers:set(playersReady)
+		self.ReadyPlayers:set(readyPlayers)
 		
 		self:ResetCountdown()
+		self:StartKickCountdown()
 	elseif dataType == "Ready" then
 		local newReadyPlayers = peek(self.ReadyPlayers)
 		newReadyPlayers[...] = true
 		self.ReadyPlayers:set(newReadyPlayers)
-		self.LastPlayers:set(newReadyPlayers)
+		
+		local currentPlayers = peek(self.CurrentPlayers)
+		local allPlayersReady = #currentPlayers > 1
+		for _, v in currentPlayers do
+			if not peek(self.ReadyPlayers)[v] then
+				allPlayersReady = false
+			end
+		end
+		if allPlayersReady then
+			self:StartGame()
+		end
 	elseif dataType == "Kick" then
 		self:StopCountdown()
 		self:ResetCountdown()
 		
 		local currentPlayers = peek(self.CurrentPlayers)
-		local readyPlayers = peek(self.ReadyPlayers)
 		
 		local playerName = ...
 		if playerName == player.Name then
 			currentPlayers = {}
-			readyPlayers = {}
 			MenuController:CloseMenu("ConnectFours")
+			self.ShowPlayAgainText:set(false)
 		else
 			for i, v in currentPlayers do
 				if v == playerName then
@@ -329,20 +335,17 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 					break
 				end
 			end
-			for i, _ in readyPlayers do
-				if i == playerName then
-					table.remove(readyPlayers, i)
-					break
-				end
-			end
 		end
 		
 		self.CurrentPlayers:set(currentPlayers)
-		self.ReadyPlayers:set(readyPlayers)
+		self.ReadyPlayers:set({})
 		
 		if #peek(self.CurrentPlayers) == 0 then
+			self.ReadyPlayers:set({})
 			self:ResetGame()
 		end
+		
+		self:StartKickCountdown()
 	elseif dataType == "ColumnSelected" then
 		self.SelectedColumn:set(...)
 	elseif dataType == "DroppedChip" then
@@ -376,16 +379,10 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 		end)
 	elseif dataType == "Won" then
 		self.Winner:set(...)
-		task.delay(3, function()
-			--MenuController:CloseMenu("ConnectFours")
-			self:ResetGame()
-		end)
+		self:PlayAgain()
 	elseif dataType == "Tie" then
 		self.Winner:set("Tie")
-		task.delay(3, function()
-			MenuController:CloseMenu("ConnectFours")
-			self:ResetGame()
-		end)
+		self:PlayAgain()
 	end
 end
 

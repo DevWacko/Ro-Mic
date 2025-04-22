@@ -72,6 +72,7 @@ function ConnectFours.new(model: Model)
 		self.MatchMakingStarted = tick()
 	end
 	
+	
 	local function kickPlayer(playerName: string)
 		for _, v in self.CurrentPlayers do
 			local player: Player? = Players:FindFirstChild(v)
@@ -101,6 +102,23 @@ function ConnectFours.new(model: Model)
 			kickPlayer(self.CurrentPlayers[i])
 		end
 	end
+	local function checkValidPlayer(playerName: string)
+		return table.find(self.CurrentPlayers, playerName) ~= nil
+	end
+	local function playerLeaveAttempt(player: Player)
+		if not checkValidPlayer(player.Name) then
+			return
+		end
+		
+		kickPlayer(player.Name)
+		
+		stopCountdown()
+		
+		if self.GameInProgress then
+			self.GameInProgress = false
+			kickCurrentPlayers()
+		end
+	end
 	local function playerJoined(player: Player)
 		stopCountdown()
 		
@@ -117,9 +135,6 @@ function ConnectFours.new(model: Model)
 		local columnIndex = ...
 		assert(columnIndex and typeof(columnIndex) == "number", "Column index was nil or not of type number")
 		assert(columnIndex >= 1 and columnIndex <= self.Data.BOARD_COLUMNS, "Column index was out of range")
-	end
-	local function checkValidPlayer(playerName: string)
-		return table.find(self.CurrentPlayers, playerName) ~= nil
 	end
 	
 	self.Trove:Add(joinProx.Triggered:Connect(function(player: Player)
@@ -165,18 +180,7 @@ function ConnectFours.new(model: Model)
 				self.GameInProgress = true
 			end
 		elseif interaction == "Leave" then
-			if not checkValidPlayer(playerName) then
-				return
-			end
-			
-			kickPlayer(player.Name)
-			
-			stopCountdown()
-			
-			if self.GameInProgress then
-				self.GameInProgress = false
-				kickCurrentPlayers()
-			end
+			playerLeaveAttempt(player)
 		elseif interaction == "SelectColumn" then
 			if not checkValidPlayer(playerName) then
 				return
@@ -228,6 +232,9 @@ function ConnectFours.new(model: Model)
 				end
 			end
 		end
+	end))
+	self.Trove:Add(Players.PlayerRemoving:Connect(function(player: Player)
+		playerLeaveAttempt(player)
 	end))
 	
 	return self
