@@ -55,6 +55,8 @@ function ConnectFours.new(model: Model)
 			MenuController:SendToClass("ConnectFours", "Kick", playerKickedName)
 			
 			updatePrompt()
+		elseif interaction == "SetTurn" then
+			MenuController:SendToClass("ConnectFours", "SetTurn", ...)
 		elseif interaction == "ColumnSelected" then
 			MenuController:SendToClass("ConnectFours", "ColumnSelected", ...)
 		elseif interaction == "DroppedChip" then

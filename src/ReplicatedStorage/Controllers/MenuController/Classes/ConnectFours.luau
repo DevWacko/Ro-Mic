@@ -44,12 +44,12 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 	self.CurrentPlayers = self.Scope:Value({})
 	self.ReadyPlayers = self.Scope:Value({})
 	
-	self.MatchMakingStarted = tick()
-	self.CountdownTime = self.Scope:Value(self.Data.KICK_TIME)
+	self.CountdownTime = self.Scope:Value(self.Data.TURN_TIME_OUT)
 	self.CountdownConnection = nil :: RBXScriptConnection?
 	
 	self.GameInProgress = self.Scope:Value(false)
 	self.TurnIndex = self.Scope:Value(nil)
+	self.TurnStarted = tick()
 	self.Winner = self.Scope:Value(nil)
 	
 	self.SelectedColumn = self.Scope:Value(self.Data.START_COLUMN)
@@ -106,9 +106,10 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 					return playerName and playerName or "..."
 				end)
 			}
-			self.Scope:Hydrate(playerFrame.Icon.Ready) {
+			self.Scope:Hydrate(playerFrame.Icon.Playing) {
 				Size = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
-					return use(v.Ready) and UDim2.fromScale(0.6, 0.6) or UDim2.new()
+					local playerName = use(v.Player)
+					return if playerName and use(self.CurrentPlayers)[use(self.TurnIndex)] == playerName then UDim2.fromScale(0.6, 0.6) else UDim2.new()
 				end), 25, 0.8),
 			}
 		end
@@ -130,8 +131,6 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 	hydratePlayerFrames()
 	
 	self.Scope:Computed(function(use: Fusion.Use)
-		self:StopCountdown()
-		
 		local currentPlayers = peek(self.CurrentPlayers)
 
 		for i, v in playerFramesData do
@@ -182,7 +181,7 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 			return allPlayersIn and not isReady
 		end),
 		Text = self.Scope:Computed(function(use: Fusion.Use)
-			return use(self.ShowPlayAgainText) and "Play Again?" or "Play"
+			return use(self.ShowPlayAgainText) and "Play Again?" or "Ready"
 		end),
 		[OnEvent("MouseButton1Down")] = function()
 			InteractingService:InteractAttempt("ConnectFours", "Ready")
@@ -211,17 +210,21 @@ function ConnectFoursMenu.new(menu: ScreenGui)
 		winnerCanvas:FindFirstChild("GameFinishStatus").Text = isTie and "Tie!" or "WINNER!"
 	end)
 	
-	local countdown: ImageLabel = sideFrame.Countdown
 	self.Scope:Observer(self.GameInProgress):onBind(function()
 		local gameInProgress = peek(self.GameInProgress)
 		sideFrame.GameStatus.Text = gameInProgress and "Game in progress..." or "Match making in progress..."
-		countdown.Visible = not gameInProgress
 		
 		if peek(self.GameInProgress) then
 			task.delay(self.Data.TURN_COOLDOWN, function()
+				self:StartTurnCountdown()
 				self.TurnIndex:set(self.Data.START_PLAYER)
 			end)
 		end
+	end)
+	
+	local countdown: ImageLabel = sideFrame.Countdown
+	self.Scope:Observer(self.TurnIndex):onBind(function()
+		countdown.Visible = peek(self.TurnIndex) ~= nil
 	end)
 	self.Scope:Observer(self.CountdownTime):onBind(function()
 		countdown.Time.Text = peek(self.CountdownTime)
@@ -237,17 +240,28 @@ end
 function ConnectFoursMenu:StartGame()
 	self.GameInProgress:set(true)
 	
-	self:StopCountdown()
+	self:DisconnectCountdown()
 	self:ResetCountdown()
 end
 
-function ConnectFoursMenu:StartKickCountdown()
+function ConnectFoursMenu:StartTurnCountdown()
+	self:DisconnectCountdown()
+	self:ResetCountdown()
+	self.CountdownConnection = RunService.Heartbeat:Connect(function()
+		self.CountdownTime:set(self.Data.TURN_TIME_OUT - math.clamp(math.floor(tick() - self.TurnStarted), 0, self.Data.TURN_TIME_OUT))
+	end)
+end
+
+function ConnectFoursMenu:DisconnectCountdown()
 	if self.CountdownConnection then
 		self.CountdownConnection:Disconnect()
+		self.CountdownConnection = nil
 	end
-	self.CountdownConnection = RunService.Heartbeat:Connect(function()
-		self.CountdownTime:set(self.Data.KICK_TIME - math.clamp(math.floor(tick() - self.MatchMakingStarted), 0, self.Data.KICK_TIME))
-	end)
+end
+
+function ConnectFoursMenu:ResetCountdown()
+	self.CountdownTime:set(self.Data.TURN_TIME_OUT)
+	self.TurnStarted = tick()
 end
 
 function ConnectFoursMenu:ResetGame()
@@ -255,13 +269,13 @@ function ConnectFoursMenu:ResetGame()
 	
 	self.ReadyPlayers:set({})
 	
-	self:StopCountdown()
-	self:ResetCountdown()
-	
 	self.TurnIndex:set(nil)
 	self.Winner:set(nil)
 	
 	self.SelectedColumn:set(self.Data.START_COLUMN)
+	
+	self:DisconnectCountdown()
+	self:ResetCountdown()
 	
 	for column, slots in self.Board do
 		for _, slot in slots do
@@ -272,25 +286,12 @@ function ConnectFoursMenu:ResetGame()
 	self.GameScope:doCleanup()
 end
 
-function ConnectFoursMenu:ResetCountdown()
-	self.CountdownTime:set(self.Data.KICK_TIME)
-	self.MatchMakingStarted = tick()
-end
-
-function ConnectFoursMenu:StopCountdown()
-	if self.CountdownConnection then
-		self.CountdownConnection:Disconnect()
-		self.CountdownConnection = nil
-	end
-end
-
 function ConnectFoursMenu:PlayAgain()
 	task.delay(3, function()
 		if table.find(peek(self.CurrentPlayers), player.Name) then
 			self.ShowPlayAgainText:set(true)
 		end
 		self:ResetGame()
-		self:StartKickCountdown()
 	end)
 end
 
@@ -301,26 +302,25 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 		self.ReadyPlayers:set(readyPlayers)
 		
 		self:ResetCountdown()
-		self:StartKickCountdown()
 	elseif dataType == "Ready" then
 		local newReadyPlayers = peek(self.ReadyPlayers)
 		newReadyPlayers[...] = true
 		self.ReadyPlayers:set(newReadyPlayers)
 		
 		local currentPlayers = peek(self.CurrentPlayers)
-		local allPlayersReady = #currentPlayers > 1
+		local allPlayersReady = true
 		for _, v in currentPlayers do
 			if not peek(self.ReadyPlayers)[v] then
 				allPlayersReady = false
 			end
 		end
+		if #currentPlayers < 2 then
+			allPlayersReady = false
+		end
 		if allPlayersReady then
 			self:StartGame()
 		end
 	elseif dataType == "Kick" then
-		self:StopCountdown()
-		self:ResetCountdown()
-		
 		local currentPlayers = peek(self.CurrentPlayers)
 		
 		local playerName = ...
@@ -344,8 +344,9 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 			self.ReadyPlayers:set({})
 			self:ResetGame()
 		end
-		
-		self:StartKickCountdown()
+	elseif dataType == "SetTurn" then
+		self:StartTurnCountdown()
+		self.TurnIndex:set(...)
 	elseif dataType == "ColumnSelected" then
 		self.SelectedColumn:set(...)
 	elseif dataType == "DroppedChip" then
@@ -367,16 +368,6 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 			Position = self.GameScope:Tween(pos, TweenInfo.new(1, Enum.EasingStyle.Bounce)),
 		}
 		pos:set(targetPos)
-		
-		local turnIndex = peek(self.TurnIndex)
-		turnIndex += 1
-		if turnIndex > 2 then
-			turnIndex = 1
-		end
-		self.TurnIndex:set(nil)
-		task.delay(self.Data.TURN_COOLDOWN, function()
-			self.TurnIndex:set(turnIndex)
-		end)
 	elseif dataType == "Won" then
 		self.Winner:set(...)
 		self:PlayAgain()

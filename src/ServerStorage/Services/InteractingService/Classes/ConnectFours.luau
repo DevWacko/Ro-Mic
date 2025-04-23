@@ -27,7 +27,7 @@ function ConnectFours.new(model: Model)
 	
 	self.CurrentPlayers = {} :: { [number]: string }
 	self.ReadyPlayers = {} :: { [number]: string }
-	self.MatchMakingStarted = tick()
+	self.TurnStarted = tick()
 	
 	self.GameInProgress = false
 	self.TurnIndex = self.Data.START_PLAYER
@@ -63,15 +63,7 @@ function ConnectFours.new(model: Model)
 		joinProx.Enabled = #self.CurrentPlayers < 2
 	end
 	
-	local countdownConnection: RBXScriptConnection?
-	local function stopCountdown()
-		if countdownConnection then
-			countdownConnection:Disconnect()
-			countdownConnection = nil
-		end
-		self.MatchMakingStarted = tick()
-	end
-	
+	self.CountdownConnection = nil :: RBXScriptConnection?
 	
 	local function kickPlayer(playerName: string)
 		for _, v in self.CurrentPlayers do
@@ -86,8 +78,6 @@ function ConnectFours.new(model: Model)
 		table.remove(self.CurrentPlayers, table.find(self.CurrentPlayers, playerName))
 		
 		if #self.CurrentPlayers == 0 then
-			stopCountdown()
-			
 			self:ResetGame()
 			
 			self.CurrentPlayers = {}
@@ -112,22 +102,12 @@ function ConnectFours.new(model: Model)
 		
 		kickPlayer(player.Name)
 		
-		stopCountdown()
-		
 		if self.GameInProgress then
 			self.GameInProgress = false
 			kickCurrentPlayers()
 		end
 	end
 	local function playerJoined(player: Player)
-		stopCountdown()
-		
-		countdownConnection = RunService.Heartbeat:Connect(function()
-			if tick() - self.MatchMakingStarted > self.Data.KICK_TIME then
-				kickCurrentPlayers()
-			end
-		end)
-		
 		updateBoardNames()
 		updatePrompt()
 	end
@@ -176,7 +156,7 @@ function ConnectFours.new(model: Model)
 				end
 			end
 			if allPlayersReady then
-				stopCountdown()
+				self:ResetCountdown()
 				self.GameInProgress = true
 			end
 		elseif interaction == "Leave" then
@@ -225,10 +205,7 @@ function ConnectFours.new(model: Model)
 					end
 					self:ResetGame()
 				else
-					self.TurnIndex += 1
-					if self.TurnIndex > 2 then
-						self.TurnIndex = 1
-					end
+					self:NextTurn()
 				end
 			end
 		end
@@ -252,24 +229,45 @@ function ConnectFours:DropChipMeshAt(column: number, slot: number, chipIndex: nu
 	chip:PivotTo(attach.WorldCFrame * CFrame.new(self:GetMeshChipSlotPosition(0), 0, 0))
 	
 	self.LocalTweenService:Tween(chip, TweenInfo.new(1, Enum.EasingStyle.Bounce), { CFrame =  attach.WorldCFrame * CFrame.new(self:GetMeshChipSlotPosition(slot), 0, 0)})
+end
+
+function ConnectFours:NextTurn()
+	self.TurnIndex += 1
+	if self.TurnIndex > 2 then
+		self:ResetCountdown()
+		self.TurnIndex = 1
+	end
+	for _, v in self.CurrentPlayers do
+		InteractingService.Client.Interaction:Fire(Players:FindFirstChild(v), "ConnectFours", "SetTurn", self.Id, self.TurnIndex)
+	end
+end
+
+function ConnectFours:ResetCountdown()
+	self:DisconnectCountdown()
 	
-	-- for i=1, self.Data.BOARD_COLUMNS do
-	-- 	local attach = self.ColumnAttachments[i]
-	-- 	for j=1, self.Data.BOARD_ROWS do
-	-- 		local chip = ReplicatedStorage.Assets.Meshes.Chips.RedChip:Clone()
-	-- 		chip.Parent = attach
-	-- 		chip:PivotTo(attach.WorldCFrame * CFrame.new(-((j + self.Data.BOARD_MODEL_ROW_MARGIN) - 1), 0, 0))
-	-- 	end
-	-- end
+	self.TurnStarted = tick()
+	self.CountdownConnection = RunService.Heartbeat:Connect(function()
+		if tick() - self.TurnStarted > self.Data.TURN_TIME_OUT then
+			self:NextTurn()
+			self:ResetCountdown()
+		end
+	end)
+end
+function ConnectFours:DisconnectCountdown()
+	if self.CountdownConnection then
+		self.CountdownConnection:Disconnect()
+		self.CountdownConnection = nil
+	end
 end
 
 function ConnectFours:ResetGame()
-	self.MatchMankingStarted = tick(0)
-	
 	self.ReadyPlayers = {}
 	
 	self.GameInProgress = false
 	self.TurnIndex = self.Data.START_PLAYER
+	
+	self:DisconnectCountdown()
+	self:ResetCountdown()
 	
 	for _, slots in self.Board do
 		for i, _ in slots do
@@ -337,7 +335,9 @@ end
 
 function ConnectFours:DropChip(player: Player, columnIndex: number)
 	local column = self.Board[columnIndex]
-    if not column then return false end -- invalid column
+    if not column then
+		return false
+	end
 
     for rowIndex = #column, 1, -1 do
         if column[rowIndex] == "" then
@@ -346,7 +346,7 @@ function ConnectFours:DropChip(player: Player, columnIndex: number)
         end
     end
 
-    return false -- column is full
+    return false
 end
 
 function ConnectFours:Destroy()
