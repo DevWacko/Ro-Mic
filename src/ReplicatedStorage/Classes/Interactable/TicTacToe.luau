@@ -116,8 +116,11 @@ end
 
 function TicTacToe:ManageSelecting()
 	if RunService:IsServer() then
-		self.SelectSlotPacket.OnServerInvoke = function(...)
-			print(...) -- ~ PLAYER, ID
+		self.SelectSlotPacket.OnServerInvoke = function(playerSelected: Player, id: string, column: number, slot: number)
+			if id ~= self.Id then
+				return
+			end
+			
 			return true
 		end
 	elseif RunService:IsClient() then
@@ -128,7 +131,7 @@ function TicTacToe:ManageSelecting()
 						columnTrove:Add(Streamable.new(columnModel, tostring(j)):Observe(function(slot: Part, slotTrove: Trove.Trove)
 							slotTrove:Add(Streamable.new(slot, "ClickDetector"):Observe(function(cd: ClickDetector, detectorTrove: Trove.Trove)
 								detectorTrove:Add(cd.MouseHoverEnter:Connect(function()
-									self.SelectSlotPacket:Fire(self.Id, i, j)
+									self.SelectSlotPacket:Fire(self.Id, i, j, "TEST")
 								end))
 							end))
 						end))
@@ -149,7 +152,7 @@ function TicTacToe.new(model: Model)
 	local Packet = Knit.Utils.Packet
 	self.PlayerAddedPacket = Packet("TTT_PlayerAdded", Packet.String, Packet.String)
 	self.PlayerRemovedPacket = Packet("TTT_PlayerRemoved", Packet.String, Packet.String)
-	self.SelectSlotPacket = Packet("TTT_SelectedSlot", Packet.String, Packet.U8, Packet.U8):Response(Packet.Boolean)
+	self.SelectSlotPacket = Packet("TTT_SelectedSlot", Packet.String, Packet.NumberU8, Packet.NumberU8, Packet.String):Response(Packet.Boolean8)
 	
 	if RunService:IsServer() then
 		self.Trove = Trove.new()
