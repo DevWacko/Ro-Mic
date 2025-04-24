@@ -2,15 +2,15 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage:WaitForChild("ExPackages")
+local Packages = ReplicatedStorage:WaitForChild("Packages")
 
 local Assets = ReplicatedStorage:WaitForChild("Assets")
 local Tools = Assets:FindFirstChild("Tools")
 
 -- Modules --
-local TableUtil = require(ExPackages:FindFirstChild("TableUtil"))
-local Fusion = require(ExPackages:FindFirstChild("Fusion"))
-local Knit = require(ExPackages:FindFirstChild("Knit"))
+local TableUtil = require(Packages:FindFirstChild("TableUtil"))
+local Fusion = require(Packages:FindFirstChild("Fusion"))
+local Knit = require(Packages:FindFirstChild("Knit"))
 
 local Children, OnEvent = Fusion.Children, Fusion.OnEvent
 local peek = Fusion.peek

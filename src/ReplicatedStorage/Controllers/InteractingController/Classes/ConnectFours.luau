@@ -1,9 +1,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Trove = require(ReplicatedStorage.ExPackages.Trove)
-local Knit = require(ReplicatedStorage.ExPackages.Knit)
-local Streamable = require(ReplicatedStorage.ExPackages.Streamable)
+local Trove = require(ReplicatedStorage.Packages.Trove)
+local Knit = require(ReplicatedStorage.Packages.Knit)
+local Streamable = require(ReplicatedStorage.Packages.Streamable)
 
 local InteractingController = Knit.GetController("InteractingController")
 local MenuController = Knit.GetController("MenuController")

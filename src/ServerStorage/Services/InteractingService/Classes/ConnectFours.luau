@@ -2,8 +2,8 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Knit = require(ReplicatedStorage.ExPackages.Knit)
-local Trove = require(ReplicatedStorage.ExPackages.Trove)
+local Knit = require(ReplicatedStorage.Packages.Knit)
+local Trove = require(ReplicatedStorage.Packages.Trove)
 
 local InteractingService = Knit.GetService("InteractingService")
 local RunService = game:GetService("RunService")
@@ -214,11 +214,18 @@ function ConnectFours.new(model: Model)
 		playerLeaveAttempt(player)
 	end))
 	
+	-- for i=1, self.Data.BOARD_COLUMNS do
+	-- 	for j=1, self.Data.BOARD_ROWS do
+	-- 		self:DropChipMeshAt(i, j, 1)
+	-- 	end
+	-- end
+	
 	return self
 end
 
 function ConnectFours:GetMeshChipSlotPosition(slot: number)
-	return -(((self.Data.BOARD_ROWS - slot) + self.Data.BOARD_MODEL_ROW_MARGIN))
+	local chipSizeZ = ReplicatedStorage.Assets.Meshes.Chips.BlueChip.Size.Z
+	return -((slot - 1) * (chipSizeZ + self.Data.BOARD_MODEL_ROW_MARGIN))
 end
 
 function ConnectFours:DropChipMeshAt(column: number, slot: number, chipIndex: number)

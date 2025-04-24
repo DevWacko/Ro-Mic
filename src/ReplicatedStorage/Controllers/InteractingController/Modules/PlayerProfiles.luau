@@ -5,12 +5,12 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Fusion = require(ExPackages.Fusion)
-local Trove = require(ExPackages.Trove)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Trove = require(Packages.Trove)
+local Knit = require(Packages.Knit)
 
 local peek = Fusion.peek
 

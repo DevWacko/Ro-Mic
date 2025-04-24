@@ -6,13 +6,13 @@ local ServerStorage = game:GetService("ServerStorage")
 local StarterGui = game:GetService("StarterGui")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local Ragdoll = require(ServerStorage.Source.Data.Character.Ragdoll)
 
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local Children = Fusion.Children
 local peek = Fusion.peek

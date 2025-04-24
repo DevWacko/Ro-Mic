@@ -6,10 +6,10 @@ local PolicyService = game:GetService("PolicyService")
 local TeleportService = game:GetService("TeleportService")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 local safeTeleport = require(ReplicatedStorage.Source.Utils.Player.safeTeleport)
 

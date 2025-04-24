@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 -- Modules --
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek

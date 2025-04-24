@@ -6,9 +6,9 @@ local TweenService = game:GetService("TweenService")
 
 -- Containers --
 local AnimationTypes = script.AnimationTypes
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 --local abbreviateNumber = require(ReplicatedStorage.Source.Utils.Abbreviation.abbreviateNumber)
 

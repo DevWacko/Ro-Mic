@@ -2,11 +2,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local peek = Fusion.peek
 

@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToolsContainer = ReplicatedStorage:FindFirstChild("Assets"):FindFirstChild("Tools")
 
 -- Modules --
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 -- Main Module --
 local Tools = {}

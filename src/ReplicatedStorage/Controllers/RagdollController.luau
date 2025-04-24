@@ -3,11 +3,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Streamable = require(ExPackages.Streamable).Streamable
-local Knit = require(ExPackages.Knit)
+local Streamable = require(Packages.Streamable).Streamable
+local Knit = require(Packages.Knit)
 
 -- Controller
 local RagdollController = Knit.CreateController { Name = "RagdollController" }

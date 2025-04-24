@@ -2,11 +2,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage:FindFirstChild("ExPackages")
+local Packages = ReplicatedStorage:FindFirstChild("Packages")
 
 -- Modules --
-local Fusion = require(ExPackages:FindFirstChild("Fusion"))
-local Knit = require(ExPackages:FindFirstChild("Knit"))
+local Fusion = require(Packages:FindFirstChild("Fusion"))
+local Knit = require(Packages:FindFirstChild("Knit"))
 
 local Children = Fusion.Children
 local peek = Fusion.peek

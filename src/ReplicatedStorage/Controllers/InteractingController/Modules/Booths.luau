@@ -3,16 +3,16 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Packages --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local Data = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 
 local playerThumbnail = Data.PlayerThumbnail
 
-local Streamable = require(ExPackages.Streamable).Streamable
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Streamable = require(Packages.Streamable).Streamable
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek

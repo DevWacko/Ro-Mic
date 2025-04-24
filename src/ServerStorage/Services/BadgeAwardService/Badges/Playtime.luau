@@ -5,7 +5,7 @@ local ServerStorage = game:GetService("ServerStorage")
 -- Modules --
 local Badges = require(ServerStorage.Source.Data.Reward.Badges)
 
-local Knit = require(ReplicatedStorage.ExPackages.Knit)
+local Knit = require(ReplicatedStorage.Packages.Knit)
 
 -- Main Module --
 local PlayTime = {}

@@ -5,9 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ChipTemps: Folder = ReplicatedStorage:WaitForChild("Assets").Gui.Templates.Chips
 
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
-local Trove = require(ReplicatedStorage.ExPackages.Trove)
-local Knit = require(ReplicatedStorage.ExPackages.Knit)
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
+local Trove = require(ReplicatedStorage.Packages.Trove)
+local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek

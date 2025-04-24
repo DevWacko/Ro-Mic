@@ -4,11 +4,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Signal = require(ExPackages.Signal)
-local Knit = require(ExPackages.Knit)
+local Signal = require(Packages.Signal)
+local Knit = require(Packages.Knit)
 
 local ModuleHandler =  require(ReplicatedStorage.Source.Classes.ModuleHandler)
 
@@ -72,6 +72,25 @@ function InteractingService:SetupClasses()
 end
 
 function InteractingService:KnitInit()
+	Knit.Shared.Interactables = {}
+	for tag, class in Knit.Classes.Interactable do
+		local function added(taggedObject: Instance)
+			class.new(taggedObject)
+		end
+		local function removed(taggedObject: Instance)
+			local oldClass = Knit.Shared.Interactables[taggedObject:GetAttribute("Id")]
+			if oldClass then
+				oldClass:Destroy()
+				Knit.Shared.Interactables[oldClass] = nil
+			end
+		end
+		CollectionService:GetInstanceAddedSignal(tag):Connect(added)
+		CollectionService:GetInstanceRemovedSignal(tag):Connect(removed)
+		for _, taggedObject in CollectionService:GetTagged(tag) do
+			added(taggedObject)
+		end
+	end
+	
 	self.modulesHandler = ModuleHandler.new(script.Modules)
 	for name, module: { Tag: string } in self.modulesHandler.requiredModules do
 		if name == "Module" then

@@ -3,11 +3,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage:WaitForChild("ExPackages")
+local Packages = ReplicatedStorage:WaitForChild("Packages")
 
 -- Modules --
-local Fusion = require(ExPackages:FindFirstChild("Fusion"))
-local Knit = require(ExPackages:FindFirstChild("Knit"))
+local Fusion = require(Packages:FindFirstChild("Fusion"))
+local Knit = require(Packages:FindFirstChild("Knit"))
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek

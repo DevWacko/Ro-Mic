@@ -8,10 +8,10 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 local Data = require(ReplicatedStorage.Source.Data.Player.Memory)
 

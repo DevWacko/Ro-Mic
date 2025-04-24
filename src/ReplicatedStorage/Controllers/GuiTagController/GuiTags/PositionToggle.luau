@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Packagess --
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 local peek = Fusion.peek
 

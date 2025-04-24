@@ -4,14 +4,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local PlayerDataTemplate = require(ServerStorage.Source.Data.Player.PlayerDataTemplate)
 
-local Promise = require(ExPackages.Promise)
-local Signal = require(ExPackages.Signal)
-local Knit = require(ExPackages.Knit)
+local Promise = require(Packages.Promise)
+local Signal = require(Packages.Signal)
+local Knit = require(Packages.Knit)
 
 local ProfileStore = require(script.ProfileStore)
 

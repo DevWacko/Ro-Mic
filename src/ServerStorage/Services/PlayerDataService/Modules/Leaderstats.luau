@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Modules --
-local Knit = require(ReplicatedStorage.ExPackages.Knit)
+local Knit = require(ReplicatedStorage.Packages.Knit)
 
 -- Main Module --
 local Leaderstats = {}

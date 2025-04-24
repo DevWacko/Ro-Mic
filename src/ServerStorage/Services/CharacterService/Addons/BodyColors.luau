@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Modules --
-local Fusion = require(ReplicatedStorage.ExPackages.Fusion)
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 local ModuleData = require(ServerStorage:FindFirstChild("Source"):FindFirstChild("Data"):FindFirstChild("Character"):FindFirstChild("BodyColors"))
 

@@ -3,13 +3,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local Data = require(ReplicatedStorage.Source.Data.Gui.Emotes)
 
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local peek = Fusion.peek
 

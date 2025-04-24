@@ -6,14 +6,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local Data = require(ReplicatedStorage.Source.Data.Gui.Menus)
 
-local Fusion = require(ExPackages.Fusion)
-local Signal = require(ExPackages.Signal)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Signal = require(Packages.Signal)
+local Knit = require(Packages.Knit)
 
 local OnChange = Fusion.OnChange
 local peek = Fusion.peek

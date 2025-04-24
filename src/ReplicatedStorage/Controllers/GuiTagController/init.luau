@@ -4,10 +4,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 local ModuleHandler = require(ReplicatedStorage.Source.Classes.ModuleHandler)
 

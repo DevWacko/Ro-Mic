@@ -6,13 +6,13 @@ local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
 local Tooltip = require(ReplicatedStorage.Source.Data.Gui.Tooltip)
 
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local Children, OnEvent, OnChange = Fusion.Children, Fusion.OnEvent, Fusion.OnChange
 local peek = Fusion.peek

@@ -2,10 +2,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage:FindFirstChild("ExPackages")
+local Packages = ReplicatedStorage:FindFirstChild("Packages")
 
 -- Modules --
-local Fusion = require(ExPackages:FindFirstChild("Fusion"))
+local Fusion = require(Packages:FindFirstChild("Fusion"))
 
 local OnEvent = Fusion.OnEvent
 

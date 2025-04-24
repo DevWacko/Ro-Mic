@@ -5,10 +5,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 -- Packages --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 local BoothsData = require(ReplicatedStorage.Source.Data.Interacting.Booths)
 

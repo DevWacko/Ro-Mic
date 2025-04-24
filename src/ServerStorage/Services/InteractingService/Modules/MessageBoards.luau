@@ -6,11 +6,11 @@ local ServerStorage = game:GetService("ServerStorage")
 local TextService = game:GetService("TextService")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local MessageBoardsData = require(ReplicatedStorage.Source.Data.Interacting.MessageBoards)
 

@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Packages --
-local Fusion = require(ReplicatedStorage:WaitForChild("ExPackages"):FindFirstChild("Fusion"))
+local Fusion = require(ReplicatedStorage:WaitForChild("Packages"):FindFirstChild("Fusion"))
 
 -- Main Module --
 local GUI_TAG_NAME = {

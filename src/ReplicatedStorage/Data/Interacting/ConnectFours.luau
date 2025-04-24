@@ -12,6 +12,6 @@ ConnectFours.START_COLUMN = 1
 ConnectFours.SELECT_COLUMN_MARGIN = 0.1
 
 ConnectFours.BOARD_MODEL_COLUMN_MARGIN = 0.1
-ConnectFours.BOARD_MODEL_ROW_MARGIN = 0.13
+ConnectFours.BOARD_MODEL_ROW_MARGIN = 0.07
 
 return ConnectFours

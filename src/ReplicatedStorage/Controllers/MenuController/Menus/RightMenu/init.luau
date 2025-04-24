@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local ExPackages = ReplicatedStorage:WaitForChild("ExPackages")
+local Packages = ReplicatedStorage:WaitForChild("Packages")
 local Source = ReplicatedStorage:WaitForChild("Source")
 local Data = Source:WaitForChild("Data")
 
@@ -11,8 +11,8 @@ local Data = Source:WaitForChild("Data")
 local MainData = require(Data:FindFirstChild("Gui"):FindFirstChild("RightMenu"))
 local Memory = require(Data:FindFirstChild("Player"):FindFirstChild("Memory"))
 
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local Children, OnEvent = Fusion.Children, Fusion.OnEvent
 local peek = Fusion.peek

@@ -4,12 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPack = game:GetService("StarterPack")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Streamable = require(ExPackages.Streamable).Streamable
-local Fusion = require(ExPackages.Fusion)
-local Knit = require(ExPackages.Knit)
+local Streamable = require(Packages.Streamable).Streamable
+local Fusion = require(Packages.Fusion)
+local Knit = require(Packages.Knit)
 
 local peek = Fusion.peek
 

@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 -- Packages --
-local Fusion = require(ReplicatedStorage:WaitForChild("ExPackages"):FindFirstChild("Fusion"))
+local Fusion = require(ReplicatedStorage:WaitForChild("Packages"):FindFirstChild("Fusion"))
 
 local peek = Fusion.peek
 
@@ -22,6 +22,9 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 	
 	local targetVal: ObjectValue = taggedObject:FindFirstChild("Target")
 	local target: GuiObject = targetVal.Value
+	local startSize = target.Size
+	
+	local openDB = false
 	
 	local shown: Fusion.Value<boolean> = scope:Value(false)
 	scope:Observer(shown):onBind(function()
@@ -40,8 +43,8 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 			return if taggedObject:GetAttribute("IgnoreAnimation") then use(shown) else true
 		end),
 		Size = scope:Spring(scope:Computed(function(use: Fusion.Use)
-			return if taggedObject:GetAttribute("IgnoreAnimation") then taggedObject.Size else
-				(use(shown) and taggedObject:GetAttribute("ShownSize") or taggedObject:GetAttribute("HiddenSize"))
+			return if taggedObject:GetAttribute("IgnoreAnimation") then startSize else
+				(use(shown) and startSize or taggedObject:GetAttribute("HiddenSize"))
 		end), 25, 0.8),
 	}
 	
@@ -55,6 +58,9 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 	end
 	
 	table.insert(scope, taggedObject.MouseButton1Click:Connect(function()
+		if openDB then
+			return
+		end
 		shown:set(not peek(shown))
 		taggedObject:SetAttribute("TargetShown", peek(shown))
 	end))
@@ -71,6 +77,11 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 		if target.Visible and not InSelection and input.UserInputType == Enum.UserInputType.MouseButton1 then
 			shown:set(false)
 			taggedObject:SetAttribute("TargetShown", false)
+			
+			openDB = true
+			task.delay(0.1, function()
+				openDB = false
+			end)
 		end
 	end))
 end

@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
-local Packages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Packages --
 local Fusion = require(Packages.Fusion)

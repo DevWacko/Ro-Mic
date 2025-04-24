@@ -4,10 +4,10 @@ local TextChatService = game:GetService("TextChatService")
 local Players = game:GetService("Players")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 -- Service --
 local DevelopingService = Knit.CreateService { Name = "DevelopingService" }

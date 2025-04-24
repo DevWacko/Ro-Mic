@@ -5,10 +5,10 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 -- Containers --
-local ExPackages = ReplicatedStorage.ExPackages
+local Packages = ReplicatedStorage.Packages
 
 -- Modules --
-local Knit = require(ExPackages.Knit)
+local Knit = require(Packages.Knit)
 
 -- Service --
 local PlayerService = Knit.CreateService { Name = "PlayerService" }
