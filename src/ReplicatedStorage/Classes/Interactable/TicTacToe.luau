@@ -48,8 +48,8 @@ end
 
 function TicTacToe:ManageJoining()
 	if RunService:IsServer() then
-		self.Trove:Add(self.Prompt.Triggered:Connect(function(player: Player)
-			self:AddPlayer(player)
+		self.Trove:Add(self.Prompt.Triggered:Connect(function(playerTriggered: Player)
+			self:AddPlayer(playerTriggered)
 		end))
 	elseif RunService:IsClient() then
 		table.insert(self.Scope, self.PlayerAddedPacket.OnClientEvent:Connect(function(id: string, player: string)
@@ -142,6 +142,16 @@ function TicTacToe:ManageSelecting()
 	end
 end
 
+function TicTacToe:StartGame()
+	self.GameInProgress = true
+	self.PlayerTurnIndex = self.Data.STARTER_PLAYER_INDEX
+end
+
+function TicTacToe:StopGame()
+	self.GameInProgress = false
+	self.PlayerTurnIndex = nil
+end
+
 function TicTacToe.new(model: Model)
 	local self = setmetatable({}, TicTacToe)
 	
@@ -153,6 +163,9 @@ function TicTacToe.new(model: Model)
 	self.PlayerAddedPacket = Packet("TTT_PlayerAdded", Packet.String, Packet.String)
 	self.PlayerRemovedPacket = Packet("TTT_PlayerRemoved", Packet.String, Packet.String)
 	self.SelectSlotPacket = Packet("TTT_SelectedSlot", Packet.String, Packet.NumberU8, Packet.NumberU8, Packet.String):Response(Packet.Boolean8)
+	
+	self.GameInProgress = false
+	self.PlayerTurnIndex = nil
 	
 	if RunService:IsServer() then
 		self.Trove = Trove.new()
