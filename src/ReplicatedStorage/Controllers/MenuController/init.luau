@@ -116,6 +116,10 @@ function MenuController:GetCurrentMenu()
 	return currentMenuData and currentMenuData.instance or nil
 end
 
+function MenuController:GetMenu(menuName: string)
+	return menus[menuName].instance
+end
+
 function MenuController:ManageNewMenu(taggedMenu: ScreenGui)
 	if not taggedMenu:IsDescendantOf(player) then
 		return
