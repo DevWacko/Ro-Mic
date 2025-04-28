@@ -3,6 +3,7 @@ local QuestionGame = {}
 QuestionGame.MENU_NAME = "QuestionType"
 
 QuestionGame.QUESTION_COOLDOWN = 2.2
+QuestionGame.QUESTION_SHOW_DELAY = 1
 
 QuestionGame.Questions = {
 	["All"] = {

@@ -1,7 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
+local Fusion = require(ReplicatedStorage.Packages.Fusion)
 local Knit = require(ReplicatedStorage.Packages.Knit)
+
+local peek = Fusion.peek
 
 local function Questions(self)
 	local Packet = Knit.Utils.Packet
@@ -9,6 +12,7 @@ local function Questions(self)
 	local SetQuestionPacket = Packet("QB_SetQuestion", Packet.String)
 	
 	if self.IsServer then
+		local lastQuestion = ""
 		local currentQuestionBlacklists = {}
 		for category, _ in self.Data.Questions do
 			currentQuestionBlacklists[category] = {}
@@ -35,8 +39,9 @@ local function Questions(self)
 			local questionPicked: string
 			repeat
 				questionPicked = questions[math.random(1, #questions)]
-				task.wait()
-			until questionPicked and not table.find(currentQuestionBlacklists[self.QuestionsType], questionPicked)
+			until questionPicked and
+				not table.find(currentQuestionBlacklists[self.QuestionsType], questionPicked)
+				and questions ~= lastQuestion
 			table.insert(currentQuestionBlacklists[self.QuestionsType], questionPicked)
 			
 			if #currentQuestionBlacklists[self.QuestionsType] == #questions then
@@ -46,6 +51,20 @@ local function Questions(self)
 			SetQuestionPacket:Fire(questionPicked)
 		end))
 	elseif self.IsClient then
+		local questionPrompt: BillboardGui = self.Trove:Add(self.Billboards:FindFirstChild("QuestionPrompt"):Clone())
+		local startPromptSize = questionPrompt.Size
+		
+		local questionShown: Fusion.Value<boolean> = self.Scope:Value(false)
+		local questionText: Fusion.Value<string> = self.Scope:Value("")
+		self.Scope:Hydrate(questionPrompt) {
+			Size = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
+				return use(questionShown) and startPromptSize or UDim2.new()
+			end), 15, 0.2)
+		}
+		self.Scope:Hydrate(questionPrompt:FindFirstChild("Main"):FindFirstChild("Question")) {
+			Text = questionText,
+		}
+		
 		local hl: Highlight?
 		local function setSelected(selected: boolean)
 			if hl then
@@ -59,7 +78,9 @@ local function Questions(self)
 				hl.Parent = self.Model
 			end
 		end
-		Streamable.new(self.Model, "Button"):Observe(function(button: Part, buttonTrove)
+		self.Trove:Add(Streamable.new(self.Model, "Button"):Observe(function(button: Part, buttonTrove)
+			questionPrompt.Parent = button
+			
 			buttonTrove:Add(Streamable.new(button, "Change"):Observe(function(cd: ClickDetector, cdTrove)
 				cdTrove:Add(cd.MouseHoverEnter:Connect(function(player: Player)
 					if player ~= self.LocalPlayer then
@@ -80,7 +101,19 @@ local function Questions(self)
 					ChangeQuestionPacket:Fire()
 				end))
 			end))
-		end)
+		end))
+		self.Trove:Add(SetQuestionPacket.OnClientEvent:Connect(function(newQuestion: string)
+			questionShown:set(false)
+			local function set()
+				questionText:set(newQuestion)
+				questionShown:set(true)
+			end
+			if peek(questionText) == "" then
+				set()
+			else
+				task.delay(self.Data.QUESTION_SHOW_DELAY, set)
+			end
+		end))
 	end
 end
 

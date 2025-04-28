@@ -19,6 +19,8 @@ function QuestionButton.new(model: Model)
 	
 	self.IsServer, self.IsClient = RunService:IsServer(), RunService:IsClient()
 	self.Data = Knit.Data.Interacting.QuestionGame
+	
+	self.Billboards = ReplicatedStorage.Assets.Gui.Billboards.QuestionButton
 	self.Model = model
 	
 	self.Trove = Trove.new()
