@@ -73,9 +73,13 @@ end
 
 function InteractingService:KnitInit()
 	Knit.Shared.Interactables = {}
+	
+	local idCounter = 0
+	
 	for tag, class in Knit.Classes.Interactable do
 		local function added(taggedObject: Instance)
-			class.new(taggedObject)
+			idCounter += 1
+			class.new(taggedObject, idCounter)
 		end
 		local function removed(taggedObject: Instance)
 			local oldClass = Knit.Shared.Interactables[taggedObject:GetAttribute("Id")]

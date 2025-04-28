@@ -1,3 +1,4 @@
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,7 +15,7 @@ QuestionButton.__index = QuestionButton
 
 export type self = typeof(QuestionButton)
 
-function QuestionButton.new(model: Model)
+function QuestionButton.new(model: Model, id: number)
 	local self = setmetatable({}, QuestionButton)
 	
 	self.IsServer, self.IsClient = RunService:IsServer(), RunService:IsClient()
@@ -25,11 +26,19 @@ function QuestionButton.new(model: Model)
 	
 	self.Trove = Trove.new()
 	
+	self.Id = id
+	
 	if self.IsServer then
+		self.Model:SetAttribute("Id", self.Id)
+		
 		self.QuestionsType = self.Data.START_QUESTION_TYPE
+		self.Question = ""
 	elseif self.IsClient then
 		self.Scope = Fusion:scoped()
+		self.QuestionsType = self.Scope:Value("")
+		
 		self.MenuController = Knit.GetController("MenuController")
+		
 		self.LocalPlayer = Players.LocalPlayer
 	end
 	

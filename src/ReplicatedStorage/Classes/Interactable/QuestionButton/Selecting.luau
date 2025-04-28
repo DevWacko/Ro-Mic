@@ -9,8 +9,11 @@ local OnEvent = Fusion.OnEvent
 
 local function Selecting(self)
 	local Packet = Knit.Utils.Packet
-	local SetSelectingPacket = Packet("QB_SetSelecting", Packet.Boolean8)
-	local SelectQuestionsType = Packet("QB_SelectQuestionsType", Packet.String)
+	
+	local SetSelectingPacket = Packet("QB_SetSelecting_" .. self.Id, Packet.Boolean8)
+	local GetQuestionsType = Packet("QB_GetQuestionsType_" .. self.Id):Response(Packet.String)
+	
+	self.SelectQuestionsType = Packet("QB_SelectQuestionsType_" .. self.Id, Packet.String)
 	
 	if self.IsServer then
 		local playersSelecting = {}
@@ -24,7 +27,11 @@ local function Selecting(self)
 			SetSelectingPacket:FireClient(player, true)
 			table.insert(playersSelecting, player.Name)
 		end))
-		self.Trove:Add(SelectQuestionsType.OnServerEvent:Connect(function(player: Player, questionsType: string)
+		self.Trove:Add(self.SelectQuestionsType.OnServerEvent:Connect(function(player: Player, questionsType: string)
+			if not table.find(playersSelecting, player.Name) then
+				return
+			end
+			
 			local char = player.Character
 			if not char then
 				return false
@@ -36,10 +43,13 @@ local function Selecting(self)
 			
 			self.QuestionsType = questionsType
 			
-			SelectQuestionsType:Fire(questionsType)
+			self.SelectQuestionsType:Fire(questionsType)
 			
 			return true
 		end))
+		GetQuestionsType.OnServerInvoke = function()
+			return self.QuestionsType
+		end
 		
 		self.Trove:Add(task.spawn(function()
 			while task.wait(1) do
@@ -62,56 +72,39 @@ local function Selecting(self)
 		local questionTypeBoard: BillboardGui = ReplicatedStorage.Assets.Gui.Billboards.QuestionButton.QuestionType:Clone()
 		questionTypeBoard.Parent = self.Model:FindFirstChild("Button")
 	elseif self.IsClient then
-		local menu: ScreenGui = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild(self.Data.MENU_NAME)
-		local mainFrame: Frame = menu:FindFirstChild("Main")
-		local contents: ScrollingFrame = mainFrame:FindFirstChild("Contents")
+		-- local menu: ScreenGui = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild(self.Data.MENU_NAME)
+		-- local mainFrame: Frame = menu:FindFirstChild("Main")
+		-- local contents: ScrollingFrame = mainFrame:FindFirstChild("Contents")
 		
-		local selectedButton: Fusion.Value<GuiButton?> = self.Scope:Value(contents:FindFirstChild(self.Data.START_QUESTION_TYPE))
+		self.QuestionsType:set(GetQuestionsType:Fire())
 		
 		self.Trove:Add(SetSelectingPacket.OnClientEvent:Connect(function(selecting: boolean)
 			if selecting then
-				self.MenuController:OpenMenu(self.Data.MENU_NAME)
+				self.MenuController:OpenMenu(self.Data.MENU_NAME, self, GetQuestionsType:Fire())
 			else
 				self.MenuController:CloseMenu(self.Data.MENU_NAME)
 			end
 		end))
-		self.Trove:Add(SelectQuestionsType.OnClientEvent:Connect(function(questionsType: string)
-			selectedButton:set(contents:FindFirstChild(questionsType))
-		end))
-		
-		local function manageButton(button: GuiButton)
-			self.Scope:Hydrate(button) {
-				BackgroundColor3 = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
-					return use(selectedButton) == button and self.Data.BUTTON_SELECTED_COLOR or self.Data.BUTTON_COLOR
-				end), TweenInfo.new(0.2)),
-				[OnEvent("MouseButton1Click")] = function()
-					if SelectQuestionsType:Fire(button.Name) then
-						selectedButton:set(button)
-					end
-				end,
-			}
-		end
-		for _, button: GuiButton? in contents:GetChildren() do
-			if not button:IsA("GuiButton") then
-				continue
-			end
-			manageButton(button)
-		end
 		
 		local size: Fusion.Value<Udim2> = self.Scope:Value(UDim2.new())
 		local sizeSpring: Fusion.Spring = self.Scope:Spring(size, self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
+		
+		self.SelectQuestionsType.OnClientEvent:Connect(function(newQuestionsType: string)
+			self.QuestionsType:set(newQuestionsType)
+			self.MenuController:CallMenuFunction(self.Data.MENU_NAME, "setQuestionsType", newQuestionsType)
+		end)
 		self.Trove:Add(Streamable.new(self.Model, "Button"):Observe(function(button: BasePart, buttonTrove)
 			buttonTrove:Add(Streamable.new(button, "QuestionType"):Observe(function(questionTypeBoard: BillboardGui)
 				size:set(questionTypeBoard.Size)
 				self.Scope:Hydrate(questionTypeBoard:FindFirstChildWhichIsA("TextLabel")) {
 					Size = sizeSpring,
 					Text = self.Scope:Computed(function(use: Fusion.Use)
-						return `( {use(selectedButton).Name} )`
+						return `( {use(self.QuestionsType)} )`
 					end),
 				}
 			end))
 		end))
-		self.Scope:Observer(selectedButton):onBind(function()
+		self.Scope:Observer(self.QuestionsType):onBind(function()
 			sizeSpring:addVelocity(self.Data.ADDED_SIZE)
 		end)
 	end

@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
@@ -8,8 +9,8 @@ local peek = Fusion.peek
 
 local function Questions(self)
 	local Packet = Knit.Utils.Packet
-	local ChangeQuestionPacket = Packet("QB_ChangeQuestion")
-	local SetQuestionPacket = Packet("QB_SetQuestion", Packet.String)
+	local ChangeQuestionPacket = Packet("QB_ChangeQuestion_" .. self.Id)
+	local SetQuestionPacket = Packet("QB_SetQuestion_" .. self.Id, Packet.String)
 	
 	if self.IsServer then
 		local lastQuestion = ""
@@ -48,20 +49,27 @@ local function Questions(self)
 				currentQuestionBlacklists[self.QuestionsType] = {}
 			end
 			
+			self.Question = questionPicked
 			SetQuestionPacket:Fire(questionPicked)
 		end))
 	elseif self.IsClient then
 		local questionPrompt: BillboardGui = self.Trove:Add(self.Billboards:FindFirstChild("QuestionPrompt"):Clone())
-		local startPromptSize = questionPrompt.Size
+		local questionBoardMain: CanvasGroup = questionPrompt:FindFirstChild("Main")
+		local startStudsOffset = questionPrompt.StudsOffset
 		
 		local questionShown: Fusion.Value<boolean> = self.Scope:Value(false)
 		local questionText: Fusion.Value<string> = self.Scope:Value("")
 		self.Scope:Hydrate(questionPrompt) {
-			Size = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
-				return use(questionShown) and startPromptSize or UDim2.new()
-			end), 15, 0.2)
+			StudsOffset = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
+				return use(questionShown) and startStudsOffset or self.Data.QUESTION_HIDE_STUDS_OFFSET
+			end), self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
 		}
-		self.Scope:Hydrate(questionPrompt:FindFirstChild("Main"):FindFirstChild("Question")) {
+		self.Scope:Hydrate(questionBoardMain) {
+			GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
+				return use(questionShown) and 0 or 1
+			end), self.Data.TWEEN_INFO)
+		}
+		self.Scope:Hydrate(questionBoardMain:FindFirstChild("Question")) {
 			Text = questionText,
 		}
 		
