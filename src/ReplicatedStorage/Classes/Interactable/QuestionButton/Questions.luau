@@ -5,6 +5,8 @@ local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
 local Knit = require(ReplicatedStorage.Packages.Knit)
 
+local Packets = require(ReplicatedStorage.Source.Data.Packets)
+
 local peek = Fusion.peek
 
 local function Questions(self)
@@ -12,7 +14,13 @@ local function Questions(self)
 	local ChangeQuestionPacket = Packet("QB_ChangeQuestion_" .. self.Id)
 	local SetQuestionPacket = Packet("QB_SetQuestion_" .. self.Id, Packet.String)
 	
+	--local TestPacket = Knit.Data.Packets.TestPacket
+	
 	if self.IsServer then
+		--[[TestPacket.OnServerEvent:Connect(function(player, message: string)
+			print(player, message)
+		end)]]
+		
 		local lastQuestion = ""
 		local currentQuestionBlacklists = {}
 		for category, _ in self.Data.Questions do
@@ -53,6 +61,8 @@ local function Questions(self)
 			SetQuestionPacket:Fire(questionPicked)
 		end))
 	elseif self.IsClient then
+		--TestPacket:Fire("HI")
+		
 		local questionPrompt: BillboardGui = self.Trove:Add(self.Billboards:FindFirstChild("QuestionPrompt"):Clone())
 		local questionBoardMain: CanvasGroup = questionPrompt:FindFirstChild("Main")
 		local startStudsOffset = questionPrompt.StudsOffset

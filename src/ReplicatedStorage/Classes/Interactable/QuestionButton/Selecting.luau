@@ -7,14 +7,9 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local OnEvent = Fusion.OnEvent
 
+local Packets = require(ReplicatedStorage.Source.Data.Packets)
+
 local function Selecting(self)
-	local Packet = Knit.Utils.Packet
-	
-	local SetSelectingPacket = Packet("QB_SetSelecting_" .. self.Id, Packet.Boolean8)
-	local GetQuestionsType = Packet("QB_GetQuestionsType_" .. self.Id):Response(Packet.String)
-	
-	self.SelectQuestionsType = Packet("QB_SelectQuestionsType_" .. self.Id, Packet.String)
-	
 	if self.IsServer then
 		local playersSelecting = {}
 		self.Trove:Add(Players.PlayerRemoving:Connect(function(player: Player)
@@ -24,10 +19,13 @@ local function Selecting(self)
 			end
 		end))
 		self.Trove:Add(self.Model.PrimaryPart:FindFirstChildWhichIsA("ProximityPrompt").Triggered:Connect(function(player: Player)
-			SetSelectingPacket:FireClient(player, true)
+			Packets.SetSelectingPacket:FireClient(player, self.Id, true)
 			table.insert(playersSelecting, player.Name)
 		end))
-		self.Trove:Add(self.SelectQuestionsType.OnServerEvent:Connect(function(player: Player, questionsType: string)
+		self.Trove:Add(Packets.SelectQuestionsTypePacket.OnServerEvent:Connect(function(player: Player, id: string, questionsType: string)
+			if id ~= self.Id then
+				return
+			end
 			if not table.find(playersSelecting, player.Name) then
 				return
 			end
@@ -43,11 +41,11 @@ local function Selecting(self)
 			
 			self.QuestionsType = questionsType
 			
-			self.SelectQuestionsType:Fire(questionsType)
+			Packets.SelectQuestionsTypePacket:Fire(self.Id, questionsType)
 			
 			return true
 		end))
-		GetQuestionsType.OnServerInvoke = function()
+		Packets.GetQuestionsTypePacket.OnServerInvoke = function()
 			return self.QuestionsType
 		end
 		

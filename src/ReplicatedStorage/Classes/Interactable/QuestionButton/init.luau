@@ -43,7 +43,7 @@ function QuestionButton.new(model: Model, id: number)
 	end
 	
 	Selecting(self)
-	Questions(self)
+	--Questions(self)
 	
 	return self
 end
