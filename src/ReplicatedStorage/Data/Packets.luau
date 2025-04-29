@@ -6,9 +6,14 @@ local Packets = {}
 
 -- Question Buttons
 Packets.QuestionButton = {
+	-- Selecting Question Type
 	SetSelecting = Packet("SetSelecting", Packet.String, Packet.Boolean8),
-	GetQuestionsType = Packet("GetQuestionsType", Packet.String, Packet.String),
-	SelectQuestionsType = Packet("SelectQuestionsType", Packet.String, Packet.String)
+	SelectQuestionsType = Packet("SelectQuestionsType", Packet.String, Packet.String),
+	GetQuestionsType = Packet("GetQuestionsType", Packet.String, Packet.String):Response(Packet.String),
+	
+	-- Changing Question
+	ChangeQuestion = Packet("ChangeQuestion", Packet.String),
+	SetQuestion = Packet("SetQuestion", Packet.String, Packet.String)
 }
 
 return Packets

@@ -49,13 +49,10 @@ function InteractingController:SetupClasses()
 end
 
 function InteractingController:KnitInit()
-	local idCounter = 0
-	
 	Knit.Shared.Interactables = {}
 	for tag, class in Knit.Classes.Interactable do
 		local function added(taggedObject: Instance)
-			class.new(taggedObject, idCounter)
-			idCounter += 1
+			class.new(taggedObject)
 		end
 		local function removed(taggedObject: Instance)
 			local oldClass = Knit.Shared.Interactables[taggedObject:GetAttribute("Id")]

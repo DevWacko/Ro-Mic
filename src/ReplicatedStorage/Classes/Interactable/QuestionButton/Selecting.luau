@@ -3,11 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
-local Knit = require(ReplicatedStorage.Packages.Knit)
 
-local OnEvent = Fusion.OnEvent
-
-local Packets = require(ReplicatedStorage.Source.Data.Packets)
+local Packets = require(ReplicatedStorage.Source.Data.Packets).QuestionButton
 
 local function Selecting(self)
 	if self.IsServer then
@@ -19,13 +16,14 @@ local function Selecting(self)
 			end
 		end))
 		self.Trove:Add(self.Model.PrimaryPart:FindFirstChildWhichIsA("ProximityPrompt").Triggered:Connect(function(player: Player)
-			Packets.SetSelectingPacket:FireClient(player, self.Id, true)
+			Packets.SetSelecting:FireClient(player, self.Id, true)
 			table.insert(playersSelecting, player.Name)
 		end))
-		self.Trove:Add(Packets.SelectQuestionsTypePacket.OnServerEvent:Connect(function(player: Player, id: string, questionsType: string)
+		self.Trove:Add(Packets.SelectQuestionsType.OnServerEvent:Connect(function(player: Player, id: string, questionsType: string)
 			if id ~= self.Id then
 				return
 			end
+			
 			if not table.find(playersSelecting, player.Name) then
 				return
 			end
@@ -40,14 +38,12 @@ local function Selecting(self)
 			assert(self.Data.Questions[questionsType], questionsType .. " was not found as a question type")
 			
 			self.QuestionsType = questionsType
+			self.Model:SetAttribute("QuestionsType", questionsType)
 			
-			Packets.SelectQuestionsTypePacket:Fire(self.Id, questionsType)
+			Packets.SelectQuestionsType:Fire(self.Id, questionsType)
 			
 			return true
 		end))
-		Packets.GetQuestionsTypePacket.OnServerInvoke = function()
-			return self.QuestionsType
-		end
 		
 		self.Trove:Add(task.spawn(function()
 			while task.wait(1) do
@@ -61,7 +57,7 @@ local function Selecting(self)
 						continue
 					end
 					if (char:GetPivot().Position - self.Model:GetPivot().Position).Magnitude > self.Data.MAX_CHARACTER_INTERACT_DISTANCE then
-						SetSelectingPacket:FireClient(player, false)
+						Packets.SetSelecting:FireClient(player, self.Id, false)
 					end
 				end
 			end
@@ -70,15 +66,15 @@ local function Selecting(self)
 		local questionTypeBoard: BillboardGui = ReplicatedStorage.Assets.Gui.Billboards.QuestionButton.QuestionType:Clone()
 		questionTypeBoard.Parent = self.Model:FindFirstChild("Button")
 	elseif self.IsClient then
-		-- local menu: ScreenGui = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild(self.Data.MENU_NAME)
-		-- local mainFrame: Frame = menu:FindFirstChild("Main")
-		-- local contents: ScrollingFrame = mainFrame:FindFirstChild("Contents")
+		self.QuestionsType:set(self.Model:GetAttribute("QuestionsType"))
 		
-		self.QuestionsType:set(GetQuestionsType:Fire())
-		
-		self.Trove:Add(SetSelectingPacket.OnClientEvent:Connect(function(selecting: boolean)
+		self.Trove:Add(Packets.SetSelecting.OnClientEvent:Connect(function(id: string, selecting: boolean)
+			if id ~= self.Id then
+				return
+			end
+			
 			if selecting then
-				self.MenuController:OpenMenu(self.Data.MENU_NAME, self, GetQuestionsType:Fire())
+				self.MenuController:OpenMenu(self.Data.MENU_NAME, self, self.Model:GetAttribute("QuestionsType"))
 			else
 				self.MenuController:CloseMenu(self.Data.MENU_NAME)
 			end
@@ -87,7 +83,11 @@ local function Selecting(self)
 		local size: Fusion.Value<Udim2> = self.Scope:Value(UDim2.new())
 		local sizeSpring: Fusion.Spring = self.Scope:Spring(size, self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
 		
-		self.SelectQuestionsType.OnClientEvent:Connect(function(newQuestionsType: string)
+		Packets.SelectQuestionsType.OnClientEvent:Connect(function(id: string, newQuestionsType: string)
+			if id ~= self.Id then
+				return
+			end
+			
 			self.QuestionsType:set(newQuestionsType)
 			self.MenuController:CallMenuFunction(self.Data.MENU_NAME, "setQuestionsType", newQuestionsType)
 		end)

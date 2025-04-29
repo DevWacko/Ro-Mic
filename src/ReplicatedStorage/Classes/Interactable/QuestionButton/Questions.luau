@@ -2,25 +2,16 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
+local Signal = require(ReplicatedStorage.Packages.Signal)
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
-local Knit = require(ReplicatedStorage.Packages.Knit)
 
-local Packets = require(ReplicatedStorage.Source.Data.Packets)
+local Packets = require(ReplicatedStorage.Source.Data.Packets).QuestionButton
+local Sound = require(ReplicatedStorage.Source.Classes.Sound)
 
 local peek = Fusion.peek
 
 local function Questions(self)
-	local Packet = Knit.Utils.Packet
-	local ChangeQuestionPacket = Packet("QB_ChangeQuestion_" .. self.Id)
-	local SetQuestionPacket = Packet("QB_SetQuestion_" .. self.Id, Packet.String)
-	
-	--local TestPacket = Knit.Data.Packets.TestPacket
-	
 	if self.IsServer then
-		--[[TestPacket.OnServerEvent:Connect(function(player, message: string)
-			print(player, message)
-		end)]]
-		
 		local lastQuestion = ""
 		local currentQuestionBlacklists = {}
 		for category, _ in self.Data.Questions do
@@ -29,7 +20,11 @@ local function Questions(self)
 		
 		local cd: ClickDetector = self.Model:FindFirstChild("Button"):FindFirstChild("Change")
 		local startActicationDistance = cd.MaxActivationDistance
-		self.Trove:Add(ChangeQuestionPacket.OnServerEvent:Connect(function(player: Player)
+		self.Trove:Add(Packets.ChangeQuestion.OnServerEvent:Connect(function(player: Player, id: string)
+			if id ~= self.Id then
+				return
+			end
+			
 			local char = player.Character
 			if not char then
 				return
@@ -58,17 +53,19 @@ local function Questions(self)
 			end
 			
 			self.Question = questionPicked
-			SetQuestionPacket:Fire(questionPicked)
+			self.Model:SetAttribute("Question", questionPicked)
+			
+			Packets.SetQuestion:Fire(self.Id, questionPicked)
 		end))
 	elseif self.IsClient then
-		--TestPacket:Fire("HI")
+		local questionAppeared = self.Trove:Add(Signal.new())
 		
 		local questionPrompt: BillboardGui = self.Trove:Add(self.Billboards:FindFirstChild("QuestionPrompt"):Clone())
 		local questionBoardMain: CanvasGroup = questionPrompt:FindFirstChild("Main")
 		local startStudsOffset = questionPrompt.StudsOffset
 		
-		local questionShown: Fusion.Value<boolean> = self.Scope:Value(false)
-		local questionText: Fusion.Value<string> = self.Scope:Value("")
+		local questionText: Fusion.Value<string> = self.Scope:Value(self.Model:GetAttribute("Question"))
+		local questionShown: Fusion.Value<boolean> = self.Scope:Value(peek(questionText) ~= "")
 		self.Scope:Hydrate(questionPrompt) {
 			StudsOffset = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
 				return use(questionShown) and startStudsOffset or self.Data.QUESTION_HIDE_STUDS_OFFSET
@@ -99,6 +96,9 @@ local function Questions(self)
 		self.Trove:Add(Streamable.new(self.Model, "Button"):Observe(function(button: Part, buttonTrove)
 			questionPrompt.Parent = button
 			
+			buttonTrove:Add(questionAppeared:Connect(function()
+				Sound.new(ReplicatedStorage.Assets.Sounds.Interactables.QuestionButton.QuestionAppear, button):Play()
+			end))
 			buttonTrove:Add(Streamable.new(button, "Change"):Observe(function(cd: ClickDetector, cdTrove)
 				cdTrove:Add(cd.MouseHoverEnter:Connect(function(player: Player)
 					if player ~= self.LocalPlayer then
@@ -116,15 +116,20 @@ local function Questions(self)
 					if player ~= self.LocalPlayer then
 						return
 					end
-					ChangeQuestionPacket:Fire()
+					Packets.ChangeQuestion:Fire(self.Id)
 				end))
 			end))
 		end))
-		self.Trove:Add(SetQuestionPacket.OnClientEvent:Connect(function(newQuestion: string)
+		self.Trove:Add(Packets.SetQuestion.OnClientEvent:Connect(function(id: string, newQuestion: string)
+			if id ~= self.Id then
+				return
+			end
+			
 			questionShown:set(false)
 			local function set()
 				questionText:set(newQuestion)
 				questionShown:set(true)
+				questionAppeared:Fire()
 			end
 			if peek(questionText) == "" then
 				set()

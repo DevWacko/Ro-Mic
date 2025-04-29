@@ -26,14 +26,18 @@ function QuestionButton.new(model: Model, id: number)
 	
 	self.Trove = Trove.new()
 	
-	self.Id = id
-	
 	if self.IsServer then
-		self.Model:SetAttribute("Id", self.Id)
-		
 		self.QuestionsType = self.Data.START_QUESTION_TYPE
 		self.Question = ""
+		
+		self.Id = HttpService:GenerateGUID()
+		self.Model:SetAttribute("Id", self.Id)
+		
+		self.Model:SetAttribute("QuestionsType", self.QuestionsType)
+		self.Model:SetAttribute("Question", "")
 	elseif self.IsClient then
+		self.Id = self.Model:GetAttribute("Id")
+		
 		self.Scope = Fusion:scoped()
 		self.QuestionsType = self.Scope:Value("")
 		
@@ -43,7 +47,7 @@ function QuestionButton.new(model: Model, id: number)
 	end
 	
 	Selecting(self)
-	--Questions(self)
+	Questions(self)
 	
 	return self
 end

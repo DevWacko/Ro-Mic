@@ -6,10 +6,11 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek
 
+local Packets = require(ReplicatedStorage.Source.Data.Packets).QuestionButton
+
 local QuestionType = { MenuName = "QuestionType" }
 
 local scope: Fusion.Scope = Fusion:scoped()
-
 local questionsType: Fusion.Value<string> = scope:Value("")
 
 local currentClass
@@ -51,7 +52,7 @@ QuestionType.menuLoaded = function(menu: ScreenGui)
 				if not currentClass then
 					return
 				end
-				currentClass.SelectQuestionsType:Fire(button.Name)
+				Packets.SelectQuestionsType:Fire(currentClass.Id, button.Name)
 			end,
 		}
 	end
