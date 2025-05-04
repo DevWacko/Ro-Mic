@@ -71,13 +71,18 @@ local function Questions(self)
 				return use(questionShown) and startStudsOffset or self.Data.QUESTION_HIDE_STUDS_OFFSET
 			end), self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
 		}
-		self.Scope:Hydrate(questionBoardMain) {
-			GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
-				return use(questionShown) and 0 or 1
-			end), self.Data.TWEEN_INFO)
-		}
+		-- self.Scope:Hydrate(questionBoardMain) {
+		-- 	GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
+		-- 		return use(questionShown) and 0 or 1
+		-- 	end), self.Data.TWEEN_INFO)
+		-- }
+		local tTween = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
+			return use(questionShown) and 0 or 1
+		end), self.Data.TWEEN_INFO)
 		self.Scope:Hydrate(questionBoardMain:FindFirstChild("Question")) {
 			Text = questionText,
+			TextTransparency = tTween,
+			BackgroundTransparency = tTween
 		}
 		
 		local hl: Highlight?

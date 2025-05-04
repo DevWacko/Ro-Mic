@@ -20,6 +20,7 @@ QuestionGame.START_QUESTION_TYPE = "All"
 QuestionGame.QUESTION_HIDE_STUDS_OFFSET = Vector3.yAxis * 2
 
 QuestionGame.HIGHLIGHT_PROPERTIES = {
+	FillColor = Color3.new(1, 1, 1),
 	DepthMode = Enum.HighlightDepthMode.Occluded,
 }
 

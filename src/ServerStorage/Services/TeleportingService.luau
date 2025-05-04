@@ -14,13 +14,20 @@ local Knit = require(Packages.Knit)
 local safeTeleport = require(ReplicatedStorage.Source.Utils.Player.safeTeleport)
 
 -- Service --
-local TeleportingService = Knit.CreateService { Name = "TeleportingService" }
+local TeleportingService = Knit.CreateService {
+	Name = "TeleportingService",
+	Client = {
+		Teleporting = Knit.CreateSignal()
+	}
+}
 
 -- Types --
 type Self = typeof(TeleportingService)
 
 -- Local --
 local placeId = game.PlaceId
+
+local policyPlaceID = 71523961983451
 
 function TeleportingService.Client:SafeTeleportToServer(player: Player, serverId: string?)
 	return self.Server:SafeTeleportToServer(player, serverId)
@@ -30,21 +37,18 @@ function TeleportingService:SafeTeleportToServer(player: Player, serverId: strin
 	local options = Instance.new("TeleportOptions")
 	options.ServerInstanceId = serverId
 	
+	self.Client.Teleporting:Fire(player, true)
 	safeTeleport(placeId, { player }, options)
 	
 	return true
 end
+function TeleportingService.Client:TeleportTo17Plus(player: Player)
+	return self.Server:TeleportTo17Plus(player)
+end
 
-local function isPlayer17Plus(player)
-	local success, policyInfo = pcall(function()
-		return PolicyService:GetPolicyInfoForPlayerAsync(player)
-	end)
-
-	if success and policyInfo then
-		return policyInfo.IsVerified17Plus == true
-	end
-
-	return false
+function TeleportingService:TeleportTo17Plus(player: Player)
+	self.Client.Teleporting:Fire(player, true)
+	safeTeleport(policyPlaceID, { player })
 end
 
 function TeleportingService:KnitInit()

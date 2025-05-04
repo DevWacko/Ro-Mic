@@ -15,6 +15,8 @@ local Knit = require(Packages:FindFirstChild("Knit"))
 local Children, OnEvent = Fusion.Children, Fusion.OnEvent
 local peek = Fusion.peek
 
+local FitViewport = require(ReplicatedStorage.Source.Utils.Calculations.FitViewport)
+
 -- Local --
 local scope: Fusion.Scope
 local toolsFrame: Frame
@@ -106,6 +108,16 @@ local function manageItems()
 						return table.find(use(equippedTools), toolName) and Color3.fromRGB(78, 211, 74) or Color3.fromRGB(85, 154, 244)
 					end), TweenInfo.new(0.25)),
 				}
+				
+				local viewport: ViewportFrame = newTemplate:FindFirstChild("ToolViewport")
+				local toolClone = tool:Clone()
+				local toolModel = Instance.new("Model")
+				for _, obj in toolClone:GetChildren() do
+					obj.Parent = toolModel
+				end
+				toolModel.PrimaryPart = toolModel:WaitForChild("Handle")
+				toolClone:Destroy()
+				FitViewport(toolModel, viewport)
 				
 				local removeCanvas: CanvasGroup = newTemplate:FindFirstChild("Remove")
 				local removeCanvasStartSize = removeCanvas.Size

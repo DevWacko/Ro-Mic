@@ -1,6 +1,7 @@
 {
 	"robloxLsp.diagnostics.disable": [
-		"trailing-space"
+		"trailing-space",
+		"unused-local"
 	],
 	"github.copilot.enable": {
 		"*": false,

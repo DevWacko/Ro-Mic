@@ -47,7 +47,7 @@ local function Selecting(self)
 		
 		self.Trove:Add(task.spawn(function()
 			while task.wait(1) do
-				for _, playerName in playersSelecting do
+				for i, playerName in playersSelecting do
 					local player: Player? = Players:FindFirstChild(playerName)
 					if not player then
 						continue
@@ -57,6 +57,7 @@ local function Selecting(self)
 						continue
 					end
 					if (char:GetPivot().Position - self.Model:GetPivot().Position).Magnitude > self.Data.MAX_CHARACTER_INTERACT_DISTANCE then
+						table.remove(playersSelecting, i)
 						Packets.SetSelecting:FireClient(player, self.Id, false)
 					end
 				end
@@ -82,6 +83,7 @@ local function Selecting(self)
 		
 		local size: Fusion.Value<Udim2> = self.Scope:Value(UDim2.new())
 		local sizeSpring: Fusion.Spring = self.Scope:Spring(size, self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
+		local questionLabelStartSize: UDim2?
 		
 		Packets.SelectQuestionsType.OnClientEvent:Connect(function(id: string, newQuestionsType: string)
 			if id ~= self.Id then
@@ -93,11 +95,15 @@ local function Selecting(self)
 		end)
 		self.Trove:Add(Streamable.new(self.Model, "Button"):Observe(function(button: BasePart, buttonTrove)
 			buttonTrove:Add(Streamable.new(button, "QuestionType"):Observe(function(questionTypeBoard: BillboardGui)
-				size:set(questionTypeBoard.Size)
-				self.Scope:Hydrate(questionTypeBoard:FindFirstChildWhichIsA("TextLabel")) {
+				local label: TextLabel = questionTypeBoard:FindFirstChildWhichIsA("TextLabel")
+				if not questionLabelStartSize then
+					questionLabelStartSize = label.Size
+				end
+				size:set(questionLabelStartSize)
+				self.Scope:Hydrate(label) {
 					Size = sizeSpring,
 					Text = self.Scope:Computed(function(use: Fusion.Use)
-						return `( {use(self.QuestionsType)} )`
+						return `({use(self.QuestionsType)} Questions)`
 					end),
 				}
 			end))

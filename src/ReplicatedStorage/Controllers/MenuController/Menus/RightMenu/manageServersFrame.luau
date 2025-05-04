@@ -70,6 +70,10 @@ local function manageServersFrame(tempScope: Fusion.Scope, mainFrame: Frame, sen
 	teleportingService = sentTeleportService
 	memoryService = sentMemoryService
 	
+	table.insert(scope, serversFrame:FindFirstChild("17+Servers"):FindFirstChild("Teleport").MouseButton1Click:Connect(function()
+		teleportingService:TeleportTo17Plus()
+	end))
+	
 	local listOfServersFrame: Frame = serversFrame:FindFirstChild("ListOfServers")
 	local serverContents = listOfServersFrame:FindFirstChild("Contents")
 	local serversNavigateFrame: Frame = serversFrame:FindFirstChild("Navigate")
