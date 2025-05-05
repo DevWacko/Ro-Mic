@@ -14,7 +14,17 @@ local BodyColors = {}
 -- Local --
 local tempScopes: { [Model]: Fusion.Scope } = {}
 
+local playerDefaultColors: { [Player]: { [string]: Color3 } } = {}
 local playerColors: { [Player]: { [string]: Color3 } } = {}
+
+local limbColorKeys = {
+	"Head",
+	"LeftArm",
+	"RightArm",
+	"LeftLeg",
+	"RightLeg",
+	"Torso",
+}
 
 local function setLimbColorAttempt(player: Player, limbName: string, color: Color3)
 	local char: Model? = player.Character or player.CharacterAdded:Wait()
@@ -54,14 +64,33 @@ BodyColors.onEventRecieved = function(player: Player, key: string, ...)
 		assert(color and typeof(color) == "Color3", "Second parameter was not a Color3")
 		
 		return task.spawn(setLimbColorAttempt, player, limbName, color)
+	elseif key == "ResetBodyColors" then
+		local defaultColors = playerDefaultColors[player]
+		if not defaultColors then
+			return
+		end
+		for limbName, color in defaultColors do
+			setLimbColorAttempt(player, limbName, color)
+		end
 	end
 end
 
 BodyColors.characterAdded = function(char: Model)
+	local player = Players:GetPlayerFromCharacter(char)
+	local hum = char:FindFirstChildWhichIsA("Humanoid")
+	local bodyColors = char:FindFirstChildWhichIsA("BodyColors")
+	
+	if not table.find(playerDefaultColors, player) and hum and bodyColors then
+		local colors = {}
+		for _, colorKey in limbColorKeys do
+			colors[colorKey] = bodyColors[colorKey .. "Color3"]
+		end
+		playerDefaultColors[player] = colors
+	end
+	
 	local scope = Fusion:scoped()
 	tempScopes[char] = scope
 	
-	local player = Players:GetPlayerFromCharacter(char)
 	if playerColors[player] and ModuleData.SAVE_ON_RESET then
 		loadPlayerColors(player)
 	else

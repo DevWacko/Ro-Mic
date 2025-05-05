@@ -120,12 +120,12 @@ function RagdollService:SetRagdollEnabledAttempt(player: Player, enabled: boolea
 		return
 	end
 	
-	local charData = charsData[char]
-	if charData then
-		charData.enabled:set(enabled)
-	end
+	-- local charData = charsData[char]
+	-- if charData then
+	-- 	charData.enabled:set(enabled)
+	-- end
 	
-	self.Client.RagdollEnabledChanged:Fire(Players:GetPlayerFromCharacter(char), enabled)
+	-- self.Client.RagdollEnabledChanged:Fire(Players:GetPlayerFromCharacter(char), enabled)
 	
 	return true
 end

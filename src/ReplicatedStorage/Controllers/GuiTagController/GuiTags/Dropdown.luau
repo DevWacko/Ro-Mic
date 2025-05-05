@@ -28,6 +28,11 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 	
 	local shown: Fusion.Value<boolean> = scope:Value(false)
 	scope:Observer(shown):onBind(function()
+		local hidden: ObjectValue? = taggedObject:FindFirstChild("Hidden")
+		if hidden then
+			hidden.Value.Visible = not peek(shown)
+		end
+		
 		local target: GuiObject? = target
 		if not target or not target:IsA("CanvasGroup") then
 			return
@@ -40,7 +45,7 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 	
 	scope:Hydrate(target) {
 		Visible = scope:Computed(function(use: Fusion.Use)
-			return if taggedObject:GetAttribute("IgnoreAnimation") then use(shown) else true
+			return if (taggedObject:GetAttribute("IgnoreAnimation") or taggedObject:GetAttribute("InstantHide")) then use(shown) else true
 		end),
 		Size = scope:Spring(scope:Computed(function(use: Fusion.Use)
 			return if taggedObject:GetAttribute("IgnoreAnimation") then startSize else
@@ -48,8 +53,11 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 		end), 25, 0.8),
 	}
 	
-	local arrow: GuiObject? = taggedObject:FindFirstChild("Arrow")
+	local arrow: GuiObject | ObjectValue | nil = taggedObject:FindFirstChild("Arrow")
 	if arrow then
+		if arrow:IsA("ObjectValue") then
+			arrow = arrow.Value
+		end
 		scope:Hydrate(arrow) {
 			Rotation = scope:Spring(scope:Computed(function(use: Fusion.Use)
 				return use(shown) and 0 or -90
@@ -61,6 +69,7 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 		if openDB then
 			return
 		end
+		print(taggedObject)
 		shown:set(not peek(shown))
 		taggedObject:SetAttribute("TargetShown", peek(shown))
 	end))

@@ -67,6 +67,8 @@ local function claimAttempt(player: Player, booth: Model)
 	for _, otherPlayer in Players:GetPlayers() do
 		updateBoothsForPlayer(otherPlayer)
 	end
+	
+	return true
 end
 
 local function editAttempt(player: Player, booth: Model)

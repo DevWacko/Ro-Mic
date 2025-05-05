@@ -4,6 +4,7 @@ QuestionGame.MENU_NAME = "QuestionType"
 
 QuestionGame.QUESTION_COOLDOWN = 2.2
 QuestionGame.QUESTION_SHOW_DELAY = 1
+QuestionGame.QUESTION_AUTO_HIDE_DELAY = 25
 
 QuestionGame.Questions = {
 	["All"] = {

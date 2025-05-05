@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
 local Signal = require(ReplicatedStorage.Packages.Signal)
@@ -9,6 +10,8 @@ local Packets = require(ReplicatedStorage.Source.Data.Packets).QuestionButton
 local Sound = require(ReplicatedStorage.Source.Classes.Sound)
 
 local peek = Fusion.peek
+
+local Data = require(ReplicatedStorage.Source.Data.Interacting.QuestionGame)
 
 local function Questions(self)
 	if self.IsServer then
@@ -71,6 +74,17 @@ local function Questions(self)
 				return use(questionShown) and startStudsOffset or self.Data.QUESTION_HIDE_STUDS_OFFSET
 			end), self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
 		}
+		
+		local lastMessageChanged = tick()
+		self.Scope:Observer(questionText):onBind(function()
+			lastMessageChanged = tick()
+		end)
+		RunService.Heartbeat:Connect(function()
+			if tick() - lastMessageChanged >= Data.QUESTION_AUTO_HIDE_DELAY then
+				questionShown:set(false)
+			end
+		end)
+		
 		-- self.Scope:Hydrate(questionBoardMain) {
 		-- 	GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
 		-- 		return use(questionShown) and 0 or 1

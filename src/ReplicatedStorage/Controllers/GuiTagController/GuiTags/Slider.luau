@@ -58,21 +58,24 @@ Slider.taggedObjectAdded = function(taggedObject: GuiObject)
 		steppedValue = math.floor(rawValue * 100 + 0.5) / 100
 		normalized = normalizeValue(steppedValue)
 	
-		handle.Position = UDim2.new(normalized, 0, 0.5, 0)
-		
+		local handleHalfScale = handle.Size.X.Scale / 2
+		local safeNormalized = math.clamp(normalized, handleHalfScale, 1 - handleHalfScale)
+
+		handle.Position = UDim2.new(safeNormalized, 0, 0.5, 0)
 		if fill then
-			fill.Size = UDim2.new(normalized, 0, 1, 0)
+			fill.Size = UDim2.new(safeNormalized, 0, 1, 0)
 		end
 	end
 	local function updateFromValue(value)
 		local min, max = getMin(), getMax()
 		
-		local clampedNormalized = math.clamp((value - min) / (max - min), 0, 1)
+		local handleHalfScale = handle.Size.X.Scale / 2
+		local safeNormalized = math.clamp(normalized, handleHalfScale, 1 - handleHalfScale)
 		
-		handle.Position = UDim2.new(clampedNormalized, 0, 0.5, 0)
+		handle.Position = UDim2.new(safeNormalized, 0, 0.5, 0)
 		
 		if fill then
-			fill.Size = UDim2.new(clampedNormalized, 0, 1, 0)
+			fill.Size = UDim2.new(safeNormalized, 0, 1, 0)
 		end
 	end
 	local function updateValueTextAttempt()

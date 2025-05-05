@@ -44,7 +44,7 @@ local currentIndexes: { [string]: Fusion.Value<number> } = {}
 local mainFrame: Frame
 local middleFrame: Frame
 local textArea: Frame
-local colorsCanvas: CanvasGroup
+local colorsFrame: Frame
 
 local function getBoothTextData()
 	playerDataService:GetValue("BoothTextData"):andThen(function(boothTextData)
@@ -77,7 +77,6 @@ Booth.init = function()
 	controller = Knit.GetController("MenuController")
 	
 	interactingService = Knit.GetService("InteractingService")
-	playerDataService = Knit.GetService("PlayerDataService")	
 end
 
 local function manageDropdown(
@@ -90,9 +89,9 @@ local function manageDropdown(
 		shown:set(not peek(shown))
 	end))
 	tempScope:Hydrate(dropdown) {
-		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
+		--[[ GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
 			return use(shown) and 0 or 1
-		end), TweenInfo.new(0.5)),
+		end), TweenInfo.new(0.5)), ]]
 		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
 			return use(shown) and showSize or hideSize
 		end), 25, 0.8),
@@ -110,8 +109,8 @@ local function manageFonts()
 	-- 	shownValues["Fonts"]:set(use)
 	-- end)
 	
-	local fontContents: ScrollingFrame = mainFrame.FontsDropdown.Contents
-	local lineWeightContents: ScrollingFrame = mainFrame.LineWeightDropdown.Contents
+	local fontContents: ScrollingFrame = mainFrame.FontsDropdown.FontsScrolling
+	local lineWeightContents: ScrollingFrame = mainFrame.LineWeightDropdown.WeightDropDown
 	
 	local selectedWeightButton: Fusion.Value<TextButton> = tempScope:Value(lineWeightContents:FindFirstChild(tostring(peek(currentIndexes.weightIndex))))
 	tempScope:Observer(currentIndexes.weightIndex):onBind(function()
@@ -123,36 +122,36 @@ local function manageFonts()
 		selectedFontButton:set(fontContents:FindFirstChild(tostring(peek(currentIndexes.fontIndex))))
 	end)
 	
-	local textEditButtonsFrame: Frame = mainFrame.Side.TextEditButtons
+	local textEditButtonsFrame: Frame = mainFrame:FindFirstChild("Frame"):FindFirstChild("Frame")
 	
 	local fontDropdown: CanvasGroup = mainFrame:FindFirstChild("FontsDropdown")
 	local fontStartSize = fontDropdown.Size
-	manageDropdown(
-		mainFrame:FindFirstChild("Middle"):FindFirstChild("Fonts"),
+	--[[ manageDropdown(
+		mainFrame:FindFirstChild("Type"):FindFirstChild("Fonts"),
 		fontDropdown,
 		shownValues["Fonts"],
 		fontStartSize, UDim2.fromScale(fontStartSize.X.Scale, 0)
-	)
+	) ]]
 	
 	local textWeightDropdown: CanvasGroup = mainFrame:FindFirstChild("LineWeightDropdown")
 	local weightStartSize = textWeightDropdown.Size
-	manageDropdown(
+	--[[ manageDropdown(
 		textEditButtonsFrame:FindFirstChild("TextWeight"):FindFirstChild("TextWeight"),
 		textWeightDropdown,
 		shownValues["Weight"],
 		weightStartSize, UDim2.fromScale(weightStartSize.X.Scale, 0)
-	)
+	) ]]
 	
 	local strokeDropdown: CanvasGroup = mainFrame:FindFirstChild("StrokeDropdown")
 	local strokeStartSize = strokeDropdown.Size
-	manageDropdown(
+	--[[ manageDropdown(
 		textEditButtonsFrame:FindFirstChild("Stroke"):FindFirstChild("Stroke"),
 		mainFrame:FindFirstChild("StrokeDropdown"),
 		shownValues["Stroke"],
 		strokeStartSize, UDim2.fromScale(0, strokeStartSize.Y.Scale)
-	)
+	) ]]
 	local strokeBar: Frame = strokeDropdown:FindFirstChild("Stroke")
-	local strokeSlider: Frame = strokeBar:FindFirstChild("Slider")
+	local strokeSlider: Frame = strokeBar:FindFirstChild("Frame")
 	strokeSlider:SetAttribute("Value", peek(currentIndexes.strokeOpacity))
 	local function setOpacity()
 		local steppedValue = math.floor(strokeSlider:GetAttribute("Value") * 100) / 100
@@ -162,12 +161,12 @@ local function manageFonts()
 	table.insert(tempScope, strokeSlider:GetAttributeChangedSignal("Value"):Connect(setOpacity))
 	setOpacity()
 	
-	tempScope:Hydrate(mainFrame.Middle.Fonts.Arrow.Icon) {
+--[[ 	tempScope:Hydrate(mainFrame.Type.Fonts.Arrow.Icon) {
 		Rotation = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
 			return use(shownValues["Fonts"]) and 0 or -90
 		end), 25, 0.8)
-	}
-	tempScope:Hydrate(mainFrame:FindFirstChild("Middle"):FindFirstChild("Fonts"):FindFirstChild("SelectedFont")) {
+	} ]]
+	tempScope:Hydrate(mainFrame:FindFirstChild("Type"):FindFirstChild("Fonts"):FindFirstChild("SelectedFont")) {
 		Text = tempScope:Computed(function(use: Fusion.Use)
 			return use(selectedFontButton).Text
 		end),
@@ -214,12 +213,11 @@ local function manageFonts()
 end
 
 local function manageColors()
-	local colorPickerShown: Fusion.Value<boolean> = tempScope:Value(false)
+	local colorPickerShown: Fusion.Value<boolean> = tempScope:Value(true)
 	
-	local textAreaFrame: Frame = mainFrame.Middle.TextArea
-	local colorsCanvas = textAreaFrame.Colors
-	local colorsContainer: Frame = colorsCanvas.Container
-	local colorPicker: ImageButton = textAreaFrame.ColorPicker
+	colorsFrame = textArea:FindFirstChild("Frame"):FindFirstChild("Colors")
+	local colorsContainer: Frame = colorsFrame.Container
+	local colorPicker: ImageButton = textArea:FindFirstChild("Frame").ColorPicker
 	
 	local selectedColorButton: Fusion.Value<ImageButton> = tempScope:Value(colorsContainer:FindFirstChild(tostring(peek(currentIndexes.textColorIndex))))
 	
@@ -238,30 +236,30 @@ local function manageColors()
 		}
 	end
 	
-	manageButton(colorsCanvas.TextColor, textSelected)
-	manageButton(colorsCanvas.StrokeColor, strokeSelected)
+	manageButton(colorsFrame.TextColor, textSelected)
+	manageButton(colorsFrame.StrokeColor, strokeSelected)
 	
-	tempScope:Hydrate(colorPicker) {
+	--[[ tempScope:Hydrate(colorPicker) {
 		Visible = tempScope:Computed(function(use: Fusion.Use)
-			return not use(colorPickerShown)
+			return use(colorPickerShown)
 		end),
 		[OnEvent("MouseButton1Down")] = function()
-			colorPickerShown:set(true)
+			colorPickerShown:set(false)
 		end,
-	}
-	tempScope:Hydrate(colorPicker.Bucket) {
+	} ]]
+	tempScope:Hydrate(colorPicker:FindFirstChild("ImageLabel")) {
 		ImageColor3 = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
 			return BoothsData.BoothStyling.COLORS[use(currentIndexes.textColorIndex)]
 		end), TweenInfo.new(0.5)),
 	}
-	tempScope:Hydrate(colorsCanvas) {
-		GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(colorPickerShown) and 0 or 1
-		end), TweenInfo.new(0.2)),
-		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(colorPickerShown) and UDim2.fromScale(0.463, 0.836) or UDim2.fromScale(0, 0.836)
-		end), 25, 0.8),
-	}
+	-- tempScope:Hydrate(colorsFrame) {
+	-- 	--  = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
+	-- 	-- 	return use(colorPickerShown) and 0 or 1
+	-- 	-- end), TweenInfo.new(0.2)),
+	-- 	Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
+	-- 		return use(colorPickerShown) and UDim2.fromScale(0.463, 0.836) or UDim2.fromScale(0, 0.836)
+	-- 	end), 25, 0.8),
+	-- }
 	
 	for _, colorButton: ImageButton? in colorsContainer:GetChildren() do
 		if not colorButton:IsA("TextButton") then
@@ -285,6 +283,8 @@ local function manageColors()
 end
 
 Booth.menuLoaded = function(menu: ScreenGui)
+	playerDataService = Knit.GetService("PlayerDataService")
+	
 	tempScope:doCleanup()
 	_trove:Clean()
 	
@@ -300,23 +300,23 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	}
 	
 	playerDataService.ProfileLoaded:Connect(getBoothTextData)
+	print("GET")
 	if Players.LocalPlayer:GetAttribute("ProfileLoaded") then
 		getBoothTextData()
 	end
 	
-	mainFrame = menu:WaitForChild("Main")
-	middleFrame = mainFrame:FindFirstChild("Middle")
-	textArea = middleFrame:FindFirstChild("TextArea")
-	colorsCanvas = textArea:FindFirstChild("Colors")
+	mainFrame = menu:WaitForChild("Booth")
+	textArea = mainFrame:FindFirstChild("Type")
+	colorsFrame = textArea:FindFirstChild("Frame"):FindFirstChild("Colors")
 	
-	for _, colorButton: TextButton? in colorsCanvas.Container:GetChildren() do
+	for _, colorButton: TextButton? in colorsFrame.Container:GetChildren() do
 		if not colorButton:IsA("TextButton") then
 			continue
 		end
 		local color = colorButton.BackgroundColor3
 		BoothsData.BoothStyling.COLORS[tonumber(colorButton.Name)] = color
 	end
-	for _, fontButton: TextButton? in mainFrame.FontsDropdown.Contents:GetChildren() do
+	for _, fontButton: TextButton? in mainFrame.FontsDropdown.FontsScrolling:GetChildren() do
 		if not fontButton:IsA("TextButton") then
 			continue
 		end
@@ -328,7 +328,7 @@ Booth.menuLoaded = function(menu: ScreenGui)
 		interactingController.Interacted:Fire("Booths", "CancelEdit")
 	end))
 	
-	tempScope:Hydrate(mainFrame.Side.UnclaimBooth) {
+	tempScope:Hydrate(mainFrame:FindFirstChild("Frame").UnclaimBooth) {
 		[OnEvent("MouseButton1Click")] = function()
 			interactingService:InteractAttempt("Booths", "Unclaim"):andThen(function(success: boolean?)
 				if success then
@@ -341,7 +341,7 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	manageColors()
 	manageFonts()
 	
-	local textBox: TextBox = mainFrame.Middle.TextArea:FindFirstChild("TextBox")
+	local textBox: TextBox = textArea:FindFirstChild("Frame"):FindFirstChild("TextBox")
 	local text: Fusion.Value<string> = tempScope:Value("")
 	
 	local function updateBoard()

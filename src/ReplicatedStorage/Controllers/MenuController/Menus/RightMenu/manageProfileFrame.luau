@@ -126,8 +126,9 @@ local function manageProfileFrame(tempScope: Fusion.Scope, mainFrame: Frame)
 	profileMainFrame = mainFrame:FindFirstChild("Profile"):FindFirstChild("Main")
 	
 	manageViewingOwnProfile()
-	manageSettings()
 	manageBio()
+	
+	settingsService.SettingsLoaded:Connect(manageSettings)
 end
 
 return manageProfileFrame

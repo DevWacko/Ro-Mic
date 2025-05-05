@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Packages --
 local Packages = ReplicatedStorage.Packages
+local Sounds = ReplicatedStorage.Assets.Sounds.Booth
 
 -- Modules --
 local Data = require(ReplicatedStorage.Source.Data.Interacting.Booths)
@@ -16,6 +17,8 @@ local Knit = require(Packages.Knit)
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek
+
+local Sound = require(ReplicatedStorage.Source.Classes.Sound)
 
 -- Main Module --
 local Booths = {
@@ -131,14 +134,19 @@ local function onBoothInteracted(booth: Model)
 	local ownerUserId: string? = peek(boothData.ownerUserId)
 	if ownerUserId == userIdString then
 		controller.InteractingService:InteractAttempt("Booths", "Edit", boothId):andThen(function(success: boolean?)
+			print(1)
 			if not success then
 				return
 			end
+			print(2)
 			editing:set(true)
 			menuController:SetMenu("TextBooth")
+			print(3)
 		end)
 	elseif not ownerUserId then
-		controller.InteractingService:InteractAttempt("Booths", "Claim", boothId)
+		controller.InteractingService:InteractAttempt("Booths", "Claim", boothId):andThen(function(success: boolean?)
+			Sound.new(Sounds:FindFirstChild("Claim")):Play()
+		end)
 	end
 end
 
