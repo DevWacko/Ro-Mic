@@ -27,26 +27,28 @@ end
 function AnimatedButton:init(button: GuiObject)
 	self.scope = Fusion:scoped() :: Fusion.Scope
 	
-	self.startSize = button.Size
-	self.size = self.scope:Value(self.startSize) :: Fusion.Value<Udim2>
-	self.sizeSpring = self.scope:Spring(self.size, 30, 0.8) :: Fusion.Spring
-	
 	local objectToAnimate: GuiButton = button
 	local customAnimatedObject: ObjectValue? = button:FindFirstChild("Animate")
 	if customAnimatedObject then
 		objectToAnimate = customAnimatedObject.Value
 	end
 	
+	self.startSize = objectToAnimate.Size
+	self.size = self.scope:Value(self.startSize) :: Fusion.Value<Udim2>
+	self.sizeSpring = self.scope:Spring(self.size, 30, button:GetAttribute("Responsiveness") or 0.8) :: Fusion.Spring
+	
 	self.scope:Hydrate(objectToAnimate) {
 		Size = self.sizeSpring,
 	}
+	
+	local addedSize = button:GetAttribute("AddedSize") or 10
 	
 	self.scope:Hydrate(button) {
 		[OnEvent("MouseEnter")] = function()
 			if button:HasTag("Locked") then
 				return
 			end
-			self.size:set(self.startSize + UDim2.fromOffset(10, 10))
+			self.size:set(self.startSize + UDim2.fromOffset(addedSize, addedSize))
 		end,
 		[OnEvent("MouseLeave")] = function()
 			if button:HasTag("Locked") then
@@ -58,7 +60,7 @@ function AnimatedButton:init(button: GuiObject)
 			if button:HasTag("Locked") then
 				return
 			end
-			self.size:set(self.startSize - UDim2.fromOffset(10, 10))
+			self.size:set(self.startSize - UDim2.fromOffset(addedSize, addedSize))
 		end,
 		[OnEvent("MouseButton1Up")] = function()
 			if button:HasTag("Locked") then

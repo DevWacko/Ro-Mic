@@ -48,6 +48,14 @@ local function taggedObjectRemoved(taggedObject: Instance)
 	end
 end
 
+function TooltipController:SetTooltip(tooltip: string)
+	self.tooltip:set(tooltip)
+end
+
+function TooltipController:ClearTooltip()
+	self.tooltip:set("")
+end
+
 function TooltipController:KnitInit()
 	self.scope = Fusion:scoped() :: Fusion.Scope
 	self.tooltip = self.scope:Value("") :: Fusion.Value<string?>
@@ -56,6 +64,7 @@ function TooltipController:KnitInit()
 	self.scope:New "ScreenGui" {
 		Name = "Tooltip",
 		Parent = player:WaitForChild("PlayerGui"),
+		DisplayOrder = 100,
 		[Children] = {
 			TooltipFrame(self.scope, self.tooltip, mouseX, mouseY),
 		},
@@ -77,16 +86,25 @@ function TooltipController:KnitInit()
 	end
 	
 	RunService.RenderStepped:Connect(function()
+		local x, y = mouse.X, mouse.Y
+		mouseX:set(x + Tooltip.MOUSE_X_OFFSET)
+		mouseY:set(y + Tooltip.MOUSE_Y_OFFSET)
+		
+		for _, tipButton: GuiButton? in player.PlayerGui:GetGuiObjectsAtPosition(x, y) do
+			if not tipButton:IsA("GuiButton") or not tipButton:HasTag("CursorTip") then
+				continue
+			end
+			self.tooltip:set(tipButton:GetAttribute("Tip"))
+			return
+		end
+		
 		if not char then
 			return
 		end
 		
-		mouseX:set(mouse.X + Tooltip.MOUSE_X_OFFSET)
-		mouseY:set(mouse.Y + Tooltip.MOUSE_Y_OFFSET)
-		
 		raycastParams.FilterDescendantsInstances = { char:GetDescendants() }
 		
-		local ray = camera:ScreenPointToRay(mouse.X, mouse.Y)
+		local ray = camera:ScreenPointToRay(x, y)
 		-- local origin = char:GetPivot().Position
 		-- local direction = mouse.Hit.Position
 		local result: RaycastResult? = workspace:Raycast(ray.Origin, ray.Direction * Tooltip.OBJECT_TOOLTIP_DISTANCE, raycastParams)

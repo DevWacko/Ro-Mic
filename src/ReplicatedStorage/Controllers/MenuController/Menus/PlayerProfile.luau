@@ -122,7 +122,7 @@ local function manageActions()
 	end))
 end
 
-local function manageClosing()
+--[[local function manageClosing()
 	local InSelection = false
 	
 	table.insert(scope, mainFrame.MouseEnter:Connect(function() InSelection = true end))
@@ -137,7 +137,7 @@ local function manageClosing()
 	_trove:Add(controller:ObserveMenuClosing("PlayerProfile", function()
 		InSelection = false
 	end))
-end
+end]]
 
 PlayerProfile.menuLoaded = function(loadedMenu: ScreenGui)
 	tempScope:doCleanup()
@@ -150,7 +150,7 @@ PlayerProfile.menuLoaded = function(loadedMenu: ScreenGui)
 	infoFrame = mainFrame:FindFirstChild("Info")
 	actionButtonsFrame = mainFrame:FindFirstChild("Actions"):FindFirstChild("Buttons")
 	
-	manageClosing()
+	--manageClosing()
 	manageActions()
 	manageInfo()
 end

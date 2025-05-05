@@ -43,12 +43,12 @@ function SettingsService:ObserveSetting(player: Player, settingName: string, han
 end
 
 function SettingsService:GetPlayerSettingValue(player: Player, settingName: string)
-	local tries = 0
+--[[	local tries = 0
 	repeat
 		task.wait(1)
 		tries += 1
 	until self.playerSettingValues[player] or tries > 10
-	
+	]]
 	local playerSettings = self.playerSettingValues[player]
 	assert(playerSettings, "PlayerSettings has not been created for " .. player.Name)
 	

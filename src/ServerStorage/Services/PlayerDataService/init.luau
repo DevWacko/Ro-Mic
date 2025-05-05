@@ -162,6 +162,7 @@ local function setupPlayerProfile(player: Player)
 				PlayerDataService:SetValue(player, key, value)
 			end
 			
+			player:SetAttribute("ProfileLoaded", true)
 			PlayerDataService.PlayerProfileLoaded:Fire(player)
 			PlayerDataService.Client.ProfileLoaded:Fire(player)
 		else

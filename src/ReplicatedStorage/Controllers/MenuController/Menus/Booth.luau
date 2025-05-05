@@ -1,4 +1,5 @@
 -- Services --
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
@@ -45,38 +46,38 @@ local middleFrame: Frame
 local textArea: Frame
 local colorsCanvas: CanvasGroup
 
+local function getBoothTextData()
+	playerDataService:GetValue("BoothTextData"):andThen(function(boothTextData)
+		-- Saved --
+		savedIndexes.textColor = boothTextData.TextColorIndex
+		savedIndexes.strokeColor = boothTextData.StrokeColorIndex
+		
+		savedIndexes.font = boothTextData.FontIndex
+		savedIndexes.weight = boothTextData.WeightIndex
+		savedIndexes.style = boothTextData.StyleIndex
+		
+		savedIndexes.strokeOpacity = boothTextData.StrokeOpacity
+		
+		-- Current --
+		currentIndexes.textColorIndex:set(savedIndexes.textColor)
+		currentIndexes.strokeColorIndex:set(savedIndexes.strokeColor)
+		
+		currentIndexes.fontIndex:set(savedIndexes.font)
+		currentIndexes.weightIndex:set(savedIndexes.weight)
+		currentIndexes.styleIndex:set(savedIndexes.style)
+		
+		currentIndexes.strokeOpacity:set(savedIndexes.strokeOpacity)
+	end):catch(function(err: string?)
+		warn("Failed to load booth text data: " .. tostring(err))
+	end)
+end
+
 Booth.init = function()
 	interactingController = Knit.GetController("InteractingController")
 	controller = Knit.GetController("MenuController")
 	
 	interactingService = Knit.GetService("InteractingService")
-	playerDataService = Knit.GetService("PlayerDataService")
-	
-	playerDataService.ProfileLoaded:Connect(function()
-		playerDataService:GetValue("BoothTextData"):andThen(function(boothTextData)
-			-- Saved --
-			savedIndexes.textColor = boothTextData.TextColorIndex
-			savedIndexes.strokeColor = boothTextData.StrokeColorIndex
-			
-			savedIndexes.font = boothTextData.FontIndex
-			savedIndexes.weight = boothTextData.WeightIndex
-			savedIndexes.style = boothTextData.StyleIndex
-			
-			savedIndexes.strokeOpacity = boothTextData.StrokeOpacity
-			
-			-- Current --
-			currentIndexes.textColorIndex:set(savedIndexes.textColor)
-			currentIndexes.strokeColorIndex:set(savedIndexes.strokeColor)
-			
-			currentIndexes.fontIndex:set(savedIndexes.font)
-			currentIndexes.weightIndex:set(savedIndexes.weight)
-			currentIndexes.styleIndex:set(savedIndexes.style)
-			
-			currentIndexes.strokeOpacity:set(savedIndexes.strokeOpacity)
-		end):catch(function(err: string?)
-			warn("Failed to load booth text data: " .. tostring(err))
-		end)
-	end)
+	playerDataService = Knit.GetService("PlayerDataService")	
 end
 
 local function manageDropdown(
@@ -297,6 +298,11 @@ Booth.menuLoaded = function(menu: ScreenGui)
 		
 		strokeOpacity = tempScope:Value(savedIndexes.strokeOpacity)
 	}
+	
+	playerDataService.ProfileLoaded:Connect(getBoothTextData)
+	if Players.LocalPlayer:GetAttribute("ProfileLoaded") then
+		getBoothTextData()
+	end
 	
 	mainFrame = menu:WaitForChild("Main")
 	middleFrame = mainFrame:FindFirstChild("Middle")
