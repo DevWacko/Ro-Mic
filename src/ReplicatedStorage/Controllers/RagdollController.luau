@@ -29,12 +29,12 @@ local function onCharacterAdded(char: Model)
 end
 
 function RagdollController:KnitInit()
-	self.RagdollService = Knit.GetService("RagdollService")
+	--[[ self.RagdollService = Knit.GetService("RagdollService")
 	
 	player.CharacterAdded:Connect(onCharacterAdded)
 	if player.Character then
 		onCharacterAdded(player.Character)
-	end
+	end ]]
 end
 
 return RagdollController

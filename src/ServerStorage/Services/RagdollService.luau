@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 local StarterGui = game:GetService("StarterGui")
 
@@ -289,17 +290,17 @@ local function onCharacterAdded(char: Model)
 end
 
 function RagdollService:KnitInit()
-	Players.PlayerAdded:Connect(function(player)
-		resetDebounces[player] = false
+	-- Players.PlayerAdded:Connect(function(player)
+	-- 	resetDebounces[player] = false
 		
-		player.CharacterAdded:Connect(onCharacterAdded)
-		if player.Character then
-			onCharacterAdded(player.Character)
-		end
-	end)
-	Players.PlayerRemoving:Connect(function(player)
-		resetDebounces[player] = nil
-	end)
+	-- 	player.CharacterAdded:Connect(onCharacterAdded)
+	-- 	if player.Character then
+	-- 		onCharacterAdded(player.Character)
+	-- 	end
+	-- end)
+	-- Players.PlayerRemoving:Connect(function(player)
+	-- 	resetDebounces[player] = nil
+	-- end)
 end
 
 return RagdollService

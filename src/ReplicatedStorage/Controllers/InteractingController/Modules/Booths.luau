@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Packages --
 local Packages = ReplicatedStorage.Packages
-local Sounds = ReplicatedStorage.Assets.Sounds.Booth
+local Sounds = ReplicatedStorage.Assets.Sounds.Interactables.Booth
 
 -- Modules --
 local Data = require(ReplicatedStorage.Source.Data.Interacting.Booths)

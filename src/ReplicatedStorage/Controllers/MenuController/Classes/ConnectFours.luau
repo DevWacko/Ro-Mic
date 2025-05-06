@@ -4,6 +4,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ChipTemps: Folder = ReplicatedStorage:WaitForChild("Assets").Gui.Templates.Chips
+local Sounds = ReplicatedStorage.Assets.Sounds.Interactables["Connect4's"]
+
+local alarmSounds = Sounds.Alarm:GetChildren()
 
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
 local Trove = require(ReplicatedStorage.Packages.Trove)
@@ -11,6 +14,8 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local OnEvent = Fusion.OnEvent
 local peek = Fusion.peek
+
+local Sound = require(ReplicatedStorage.Source.Classes.Sound)
 
 local InteractingController = Knit.GetController("InteractingController")
 local InteractingService = Knit.GetService("InteractingService")
@@ -247,8 +252,14 @@ end
 function ConnectFoursMenu:StartTurnCountdown()
 	self:DisconnectCountdown()
 	self:ResetCountdown()
+	
+	local lastTick = tick()
 	self.CountdownConnection = RunService.Heartbeat:Connect(function()
 		self.CountdownTime:set(self.Data.TURN_TIME_OUT - math.clamp(math.floor(tick() - self.TurnStarted), 0, self.Data.TURN_TIME_OUT))
+		if tick() - lastTick > 1 then
+			lastTick = tick()
+			Sound.new(Sounds.Ticking):Play()
+		end
 	end)
 end
 
@@ -345,8 +356,12 @@ function ConnectFoursMenu:RecieveData(dataType: string, ...)
 			self:ResetGame()
 		end
 	elseif dataType == "SetTurn" then
+		local turnIndex, timeout = ...
+		if timeout then
+			Sound.new(alarmSounds[math.random(1, #alarmSounds)]):Play()
+		end
 		self:StartTurnCountdown()
-		self.TurnIndex:set(...)
+		self.TurnIndex:set(turnIndex)
 	elseif dataType == "ColumnSelected" then
 		self.SelectedColumn:set(...)
 	elseif dataType == "DroppedChip" then

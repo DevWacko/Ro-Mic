@@ -31,7 +31,7 @@ end
 
 local function unequipToolAttempt(player: Player, char: Model, toolName: string)
 	local tool: Tool? = player:FindFirstChild("Backpack"):FindFirstChild(toolName) or char:FindFirstChild(toolName)
-	if tool then
+	if tool and tool:IsA("Tool") then
 		tool:Destroy()
 		return true
 	end
@@ -39,6 +39,7 @@ local function unequipToolAttempt(player: Player, char: Model, toolName: string)
 end
 
 local function bulkUnequipTools(player: Player, char: Model, toolsToUnequip: { string })
+	assert(typeof(toolsToUnequip) == "table", "Sent tool array was not of type table")
 	for _, toolName in toolsToUnequip do
 		assert(typeof(toolName) == "string", "tool name was not a string")
 		unequipToolAttempt(player, char, toolName)

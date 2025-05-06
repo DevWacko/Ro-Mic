@@ -117,7 +117,7 @@ MessageBoards.init = function()
 			local userId = tostring(player.UserId)
 			
 			local boardMessagesData = peek(boardMessages)
-			for boardId: string, messages: { [string]: Message } in data[1] do
+			for boardId: string, messages: { [string]: { Message } } in data[1] do
 				if not boardMessagesData[boardId] then
 					continue
 				end
@@ -204,7 +204,6 @@ MessageBoards.init = function()
 				boardId: string,
 				taggedObject: Instance
 			)
-				local messages = use(boardMessages)[boardId]
 				boardSurfaceGuis[boardId] = surfaceScope:New "SurfaceGui" {
 					Name = taggedObject.Name,
 					Adornee = taggedObject,
@@ -212,47 +211,6 @@ MessageBoards.init = function()
 					Brightness = 1,
 					
 					[Children] = {
-						surfaceScope:ForPairs(messages, function(use: Fusion.Use, messageScope: Fusion.Scope, userId: string, messageData: Message)
-							local isNewMessage = true
-							for lastBoardId, lastMessages in lastBoardMessages do
-								if lastBoardId ~= boardId then
-									continue
-								end
-								for lastUserId, lastMessageData: Message in lastMessages do
-									if lastUserId == userId and lastMessageData.position == messageData.position then
-										isNewMessage = false
-										break
-									end
-								end
-							end
-							
-							local bgColor: Fusion.Value<Color3> = messageScope:Value(
-								isNewMessage and MessageBoardsData.Gui.Message.CAN_WRITE_COLOR or MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR
-							)
-							local rotation: Fusion.Value<number> = messageScope:Value(0)
-							
-							local text = `<b>{Players:GetPlayerByUserId(tonumber(userId)).Name}:</b> {messageData.text}`
-							local message = messageScope:New "TextLabel" {
-								Position = messageData.position,
-								Size = getTextFlexSize(text),
-								Rotation = messageScope:Spring(rotation, 5, 0.7),
-								
-								Font = MessageBoardsData.Gui.Message.FONT,
-								TextSize = MessageBoardsData.Gui.Message.FONT_SIZE,
-								TextWrapped = true,
-								RichText = true,
-								Text = text,
-								
-								BackgroundColor3 = messageScope:Tween(bgColor, MessageBoardsData.Gui.Message.COLOR_TWEEN_INFO),
-								
-								[Children] = {
-									messageScope:New "UICorner" { CornerRadius = MessageBoardsData.Gui.Message.CORNER_RADIUS },
-								},
-							}
-							rotation:set(messageData.rotation)
-							bgColor:set(MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR)
-							return userId, message
-						end),
 						surfaceScope:New "Frame" {
 							Name = "Backdrop",
 							Size = UDim2.fromScale(1, 1),
@@ -268,6 +226,60 @@ MessageBoards.init = function()
 						},
 					},
 				}
+				local boardMessages = use(boardMessages)[boardId]
+				surfaceScope:ForPairs(boardMessages, function(use, boardScope, userId: string, userMessages: { Message })
+					boardScope:ForValues(userMessages, function(use: Fusion.Use, messageScope: Fusion.Scope, messageData: Message)
+						local isNewMessage = true
+						local lastRot: number?
+						for lastBoardId, lastBoardMessages in lastBoardMessages do
+							if lastBoardId ~= boardId then
+								continue
+							end
+							for lastUserId, lastUserMessages: { Message } in lastBoardMessages do
+								if lastUserId == userId then
+									for _, lastMessageData in lastUserMessages do
+										if lastMessageData.position == messageData.position then
+											isNewMessage = false
+											lastRot = lastMessageData.rotation
+											break
+										end
+									end
+								end
+							end
+						end
+						
+						local bgColor: Fusion.Value<Color3> = messageScope:Value(
+							isNewMessage and MessageBoardsData.Gui.Message.CAN_WRITE_COLOR or MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR
+						)
+						local rotation: Fusion.Value<number> = messageScope:Value(lastRot or 0)
+						
+						local text = `<b>{Players:GetPlayerByUserId(tonumber(userId)).Name}:</b> {messageData.text}`
+						local message = messageScope:New "TextLabel" {
+							Position = messageData.position,
+							Size = getTextFlexSize(text),
+							Rotation = messageScope:Spring(rotation, 5, 0.7),
+							
+							Font = MessageBoardsData.Gui.Message.FONT,
+							TextSize = MessageBoardsData.Gui.Message.FONT_SIZE,
+							TextWrapped = true,
+							RichText = true,
+							Text = text,
+							
+							BackgroundColor3 = messageScope:Tween(bgColor, MessageBoardsData.Gui.Message.COLOR_TWEEN_INFO),
+							
+							[Children] = {
+								messageScope:New "UICorner" { CornerRadius = MessageBoardsData.Gui.Message.CORNER_RADIUS },
+							},
+						}
+						rotation:set(messageData.rotation)
+						bgColor:set(MessageBoardsData.Gui.Message.MESSAGE_BG_COLOR)
+						
+						message.Parent = boardSurfaceGuis[boardId]
+						
+						--return message
+					end)
+				end)
+				
 				return boardId, boardSurfaceGuis[boardId]
 			end)
 		},

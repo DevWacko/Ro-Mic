@@ -28,11 +28,13 @@ local scope: Fusion.Scope
 
 local messages: { [string]: {
 	[Player]: {
-		boardId: string,
-		
-		position: UDim2,
-		size: UDim2,
-		text: string
+		{
+			boardId: string,
+			
+			position: UDim2,
+			size: UDim2,
+			text: string
+		}
 	}
 } } = {}
 
@@ -64,7 +66,12 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 	end
 	text = filterString(playerSent, text)
 	
-	messages[boardId][tostring(playerSent.UserId)] = {
+	local userMessages = messages[boardId][tostring(playerSent.UserId)]
+	if userMessages and #userMessages >= MessageBoardsData.MAX_MESSAGES_PER_PLAYER then
+		return
+	end
+	
+	local messageData = {
 		boardId = boardId,
 		
 		rotation = rnd:NextNumber(MessageBoardsData.Gui.Message.ROTATION_RANGE_MIN, MessageBoardsData.Gui.Message.ROTATION_RANGE_MAX),
@@ -73,6 +80,11 @@ local function submitMessageAttempt(playerSent: Player, boardId: string, positio
 		size = size,
 		text = text
 	}
+	if not userMessages then
+		messages[boardId][tostring(playerSent.UserId)] = { messageData }
+	else
+		table.insert(messages[boardId][tostring(playerSent.UserId)], messageData)
+	end
 	
 	for _, player in Players:GetPlayers() do
 		fireNewMessages(player)

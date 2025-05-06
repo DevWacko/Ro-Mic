@@ -1,4 +1,5 @@
 -- Services --
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
@@ -30,6 +31,8 @@ local toolTemp = Assets:FindFirstChild("Gui"):FindFirstChild("Templates"):FindFi
 
 local guiAnimationController
 local characterService
+
+local player = Players.LocalPlayer
 
 -- Main Module --
 local function manageCategories()
@@ -154,31 +157,59 @@ local function manageItems()
 	}
 end
 
+local function getPlayerTools()
+	local tools = {}
+	for _, tool: Tool? in player.Backpack:GetChildren() do
+		if not tool:IsA("Tool") then
+			continue
+		end
+		table.insert(tools, tool)
+	end
+	if player.Character then
+		for _, tool: Tool? in player.Character:GetChildren() do
+			if not tool:IsA("Tool") then
+				continue
+			end
+			table.insert(tools, tool)
+		end
+	end
+	return tools
+end
+
 local function manageClearInventory(mainFrame: Frame)
 	local clearInventoryButton: GuiButton = mainFrame:FindFirstChild("ExternalButtons"):FindFirstChild("ClearInventory")
-	scope:Computed(function(use: Fusion.Use)
-		local locked = #use(equippedTools) == 0
+	local openCloseButton: GuiButton = mainFrame:FindFirstChild("Open/Close")
+	local function check()
+		local locked = #getPlayerTools() == 0 or not openCloseButton:GetAttribute("ShowingTarget")
 		if locked then
 			clearInventoryButton:AddTag("Locked")
 		else
 			clearInventoryButton:RemoveTag("Locked")
 		end
 		guiAnimationController.activeAnimatedClasses[clearInventoryButton].size:set(locked and UDim2.new() or UDim2.fromScale(0.609, 0.7))
-	end)
+	end
+	scope:Computed(check)
+	openCloseButton:GetAttributeChangedSignal("ShowingTarget"):Connect(check)
+	
 	table.insert(scope, clearInventoryButton.MouseButton1Click:Connect(function()
-		local toolsToUnequip = peek(equippedTools)
-		characterService:SendAddonEventAttempt("Tools", "BulkUnequipTools", toolsToUnequip):andThen(function(success)
+		local toolNames = {}
+		for _, tool in getPlayerTools() do
+			table.insert(toolNames, tool.Name)
+		end
+		characterService:SendAddonEventAttempt("Tools", "BulkUnequipTools", toolNames):andThen(function(success)
 			if not success then
 				return
 			end
 			
 			for i = #savedEquippedTools, 1, -1 do
 				local toolName = savedEquippedTools[i]
-				if table.find(toolsToUnequip, toolName) then
+				if table.find(toolNames, toolName) then
 					table.remove(savedEquippedTools, i)
 				end
 			end
 			equippedTools:set(savedEquippedTools)
+			
+			check()
 		end)
 	end))
 end

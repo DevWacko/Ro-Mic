@@ -300,7 +300,6 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	}
 	
 	playerDataService.ProfileLoaded:Connect(getBoothTextData)
-	print("GET")
 	if Players.LocalPlayer:GetAttribute("ProfileLoaded") then
 		getBoothTextData()
 	end

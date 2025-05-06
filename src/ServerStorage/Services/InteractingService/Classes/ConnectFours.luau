@@ -238,14 +238,14 @@ function ConnectFours:DropChipMeshAt(column: number, slot: number, chipIndex: nu
 	self.LocalTweenService:Tween(chip, TweenInfo.new(1, Enum.EasingStyle.Bounce), { CFrame =  attach.WorldCFrame * CFrame.new(self:GetMeshChipSlotPosition(slot), 0, 0)})
 end
 
-function ConnectFours:NextTurn()
+function ConnectFours:NextTurn(timeout: boolean?)
 	self.TurnIndex += 1
 	if self.TurnIndex > 2 then
 		self:ResetCountdown()
 		self.TurnIndex = 1
 	end
 	for _, v in self.CurrentPlayers do
-		InteractingService.Client.Interaction:Fire(Players:FindFirstChild(v), "ConnectFours", "SetTurn", self.Id, self.TurnIndex)
+		InteractingService.Client.Interaction:Fire(Players:FindFirstChild(v), "ConnectFours", "SetTurn", self.Id, self.TurnIndex, timeout)
 	end
 end
 
@@ -255,7 +255,7 @@ function ConnectFours:ResetCountdown()
 	self.TurnStarted = tick()
 	self.CountdownConnection = RunService.Heartbeat:Connect(function()
 		if tick() - self.TurnStarted > self.Data.TURN_TIME_OUT then
-			self:NextTurn()
+			self:NextTurn(true)
 			self:ResetCountdown()
 		end
 	end)

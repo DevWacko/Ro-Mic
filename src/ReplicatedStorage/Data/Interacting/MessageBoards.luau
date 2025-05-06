@@ -1,5 +1,7 @@
 local MessageBoards = {}
 
+MessageBoards.MAX_MESSAGES_PER_PLAYER = 3
+
 MessageBoards.Gui = {
 	Message = {
 		MAX_CHARACTERS = 200,
