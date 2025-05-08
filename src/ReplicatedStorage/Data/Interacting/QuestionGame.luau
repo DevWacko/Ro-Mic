@@ -4,7 +4,9 @@ QuestionGame.MENU_NAME = "QuestionType"
 
 QuestionGame.QUESTION_COOLDOWN = 2.2
 QuestionGame.QUESTION_SHOW_DELAY = 1
-QuestionGame.QUESTION_AUTO_HIDE_DELAY = 25
+QuestionGame.MAIN_QUESTION_REMOVE_DELAY = 30
+QuestionGame.OLD_QUESTION_REMOVE_DELAY = 7
+QuestionGame.MAX_QUESTIONS = 3
 
 QuestionGame.Questions = {
 	["All"] = {

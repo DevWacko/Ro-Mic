@@ -13,7 +13,7 @@ Packets.QuestionButton = {
 	
 	-- Changing Question
 	ChangeQuestion = Packet("ChangeQuestion", Packet.String),
-	SetQuestion = Packet("SetQuestion", Packet.String, Packet.String)
+	AddQuestion = Packet("SetQuestion", Packet.String, Packet.String)
 }
 
 return Packets

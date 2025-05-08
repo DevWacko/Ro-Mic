@@ -58,7 +58,7 @@ local function Questions(self)
 			self.Question = questionPicked
 			self.Model:SetAttribute("Question", questionPicked)
 			
-			Packets.SetQuestion:Fire(self.Id, questionPicked)
+			Packets.AddQuestion:Fire(self.Id, questionPicked)
 		end))
 	elseif self.IsClient then
 		local questionAppeared = self.Trove:Add(Signal.new())
@@ -69,13 +69,14 @@ local function Questions(self)
 		
 		local questionText: Fusion.Value<string> = self.Scope:Value(self.Model:GetAttribute("Question"))
 		local questionShown: Fusion.Value<boolean> = self.Scope:Value(peek(questionText) ~= "")
-		self.Scope:Hydrate(questionPrompt) {
-			StudsOffset = self.Scope:Spring(self.Scope:Computed(function(use: Fusion.Use)
-				return use(questionShown) and startStudsOffset or self.Data.QUESTION_HIDE_STUDS_OFFSET
-			end), self.Data.SPRING_SPEED, self.Data.SPRING_RESPONSIVENESS)
-		}
 		
-		local lastMessageChanged = tick()
+		local currentQuestions: { [number]: {
+			Scope: Fusion.Scope,
+			Shown: Fusion.Value<boolean>,
+			Created: number,
+		} } = {}
+		
+		--[[ local lastMessageChanged = tick()
 		self.Scope:Observer(questionText):onBind(function()
 			lastMessageChanged = tick()
 		end)
@@ -83,21 +84,16 @@ local function Questions(self)
 			if tick() - lastMessageChanged >= Data.QUESTION_AUTO_HIDE_DELAY then
 				questionShown:set(false)
 			end
-		end)
+		end) ]]
 		
-		-- self.Scope:Hydrate(questionBoardMain) {
-		-- 	GroupTransparency = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
-		-- 		return use(questionShown) and 0 or 1
-		-- 	end), self.Data.TWEEN_INFO)
-		-- }
-		local tTween = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
+		--[[ local tTween = self.Scope:Tween(self.Scope:Computed(function(use: Fusion.Use)
 			return use(questionShown) and 0 or 1
 		end), self.Data.TWEEN_INFO)
 		self.Scope:Hydrate(questionBoardMain:FindFirstChild("Question")) {
 			Text = questionText,
 			TextTransparency = tTween,
 			BackgroundTransparency = tTween
-		}
+		} ]]
 		
 		local hl: Highlight?
 		local function setSelected(selected: boolean)
@@ -139,21 +135,69 @@ local function Questions(self)
 				end))
 			end))
 		end))
-		self.Trove:Add(Packets.SetQuestion.OnClientEvent:Connect(function(id: string, newQuestion: string)
+		
+		local function removeQuestion(index: number)
+			local data = currentQuestions[index]
+			table.remove(currentQuestions, index)
+			
+			data.Shown:set(false)
+			
+			task.delay(Data.TWEEN_INFO.Time, function()
+				data.Scope:doCleanup()
+			end)
+		end
+		
+		self.Trove:Add(Packets.AddQuestion.OnClientEvent:Connect(function(id: string, addedQuestion: string)
 			if id ~= self.Id then
 				return
 			end
 			
-			questionShown:set(false)
-			local function set()
-				questionText:set(newQuestion)
-				questionShown:set(true)
-				questionAppeared:Fire()
+			if #currentQuestions + 1 > Data.MAX_QUESTIONS then
+				removeQuestion(1)
 			end
-			if peek(questionText) == "" then
-				set()
-			else
-				task.delay(self.Data.QUESTION_SHOW_DELAY, set)
+			
+			local questionScope = Fusion:scoped()
+			table.insert(self.Scope, questionScope)
+			
+			local shown = questionScope:Value(false)
+			
+			local label = ReplicatedStorage.Assets.Gui.Templates.Question:Clone()
+			label.Text = addedQuestion
+			
+			local startSize = label.Size
+			
+			local questionLabel = questionScope:Hydrate(label) {
+				Name = "Question" .. #currentQuestions,
+				Parent = questionBoardMain,
+				
+				--[[ Size = questionScope:Spring(questionScope:Computed(function(use)
+					return use(shown) and startSize or UDim2.new()
+				end), 15, 0.5), ]]
+				
+				Text = addedQuestion,
+				TextTransparency = questionScope:Tween(questionScope:Computed(function(use)
+					return use(shown) and 0 or 1
+				end), Data.TWEEN_INFO),
+				BackgroundTransparency = questionScope:Tween(questionScope:Computed(function(use)
+					return use(shown) and 0 or 1
+				end), Data.TWEEN_INFO)
+			}
+			
+			shown:set(true)
+			
+			table.insert(currentQuestions, {
+				Scope = questionScope,
+				Shown = shown,
+				Created = tick(),
+			})
+			
+			questionAppeared:Fire()
+		end))
+		self.Trove:Add(RunService.Heartbeat:Connect(function()
+			for i, data in currentQuestions do
+				if tick() - data.Created >= (i == #currentQuestions and Data.MAIN_QUESTION_REMOVE_DELAY or Data.OLD_QUESTION_REMOVE_DELAY) then
+					removeQuestion(i)
+				end
 			end
 		end))
 	end

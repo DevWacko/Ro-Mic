@@ -31,7 +31,7 @@ local function toggleRagdollAttempt()
 		if not success then
 			return
 		end
-		--print("RAGDOLLING SET TO ", ragdolling)
+		print("RAGDOLLING SET TO ", ragdolling)
 	end)
 end
 

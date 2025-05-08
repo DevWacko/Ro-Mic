@@ -26,6 +26,8 @@ function QuestionButton.new(model: Model, id: number)
 	
 	self.Trove = Trove.new()
 	
+	self.QuestionsList = {}
+	
 	if self.IsServer then
 		self.QuestionsType = self.Data.START_QUESTION_TYPE
 		self.Question = ""

@@ -19,6 +19,7 @@ local peek = Fusion.peek
 
 local manageModificationFrame = require(script.manageModificationFrame)
 local manageSettingsFrame = require(script.manageSettingsFrame)
+local manageFriendsInvite = require(script.manageFriendsInvite)
 local manageServersFrame = require(script.manageServersFrame)
 local manageProfileFrame = require(script.manageProfileFrame)
 local manageToolsFrame = require(script.manageToolsFrame)
@@ -114,6 +115,7 @@ RightMenu.menuLoaded = function(menu: ScreenGui)
 	
 	manageModificationFrame(tempScope, mainFrame)
 	manageSettingsFrame(tempScope, mainFrame)
+	manageFriendsInvite(tempScope, mainMenu)
 	manageProfileFrame(tempScope, mainFrame)
 	manageToolsFrame(tempScope, mainFrame)
 	
