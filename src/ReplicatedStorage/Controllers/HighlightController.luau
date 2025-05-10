@@ -59,7 +59,11 @@ function HighlightController:UpdateCharacterHighlights()
 	
 	if not self:HasHighlight(otherChar) then
 		self:HighlightObject(otherChar, {
-			FillTransparency = 1
+			FillTransparency = 0.5,
+			FillColor = Color3.fromRGB(132, 132, 132),
+			
+			OutlineTransparency = 0.2,
+			OutlineColor = Color3.fromRGB(191, 191, 191),
 		})
 		lastCharacterSelected = otherChar
 	end

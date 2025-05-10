@@ -7,6 +7,7 @@ local Packages = ReplicatedStorage:WaitForChild("Packages")
 
 -- Modules --
 local Fusion = require(Packages:FindFirstChild("Fusion"))
+local Trove = require(ReplicatedStorage.Packages.Trove)
 local Knit = require(Packages:FindFirstChild("Knit"))
 
 local peek = Fusion.peek
@@ -17,12 +18,15 @@ local handleSettingObject = require(script.Parent.handleSettingObject)
 
 -- Local --
 local scope: Fusion.Scope
+local trove: Trove.Trove
 
 local profileMainFrame: Frame
 
 local playerDataService
 local settingsService
 local menuController
+
+local player = Players.LocalPlayer
 
 local function manageBio()
 	local bioFrame: Frame = profileMainFrame:FindFirstChild("Bio")
@@ -85,7 +89,7 @@ local function manageViewingOwnProfile()
 	local viewButton: GuiButton = profileMainFrame:FindFirstChild("ProfileView"):FindFirstChild("ViewProfile")
 	
 	local function checkViewingProfile()
-		return peek(menuController:GetMenuModule("PlayerProfile").playerViewing) == Players.LocalPlayer
+		return peek(menuController:GetMenuModule("PlayerProfile").playerViewing) == player
 	end
 	
 	local isViewingProfile: Fusion.Value<boolean> = scope:Value(checkViewingProfile())
@@ -95,9 +99,13 @@ local function manageViewingOwnProfile()
 		end),
 	}
 	
+	trove:Add(menuController:ObserveMenuClosing("PlayerProfile", function()
+		isViewingProfile:set(false)
+	end))
+	
 	table.insert(scope, viewButton.MouseButton1Click:Connect(function()
 		if not peek(isViewingProfile) then
-			menuController:SetMenu("PlayerProfile", Players.LocalPlayer, false)
+			menuController:OpenMenu("PlayerProfile", player, false)
 			isViewingProfile:set(true)
 		else
 			menuController:CloseMenu("PlayerProfile", true)
@@ -116,8 +124,20 @@ local function manageSettings()
 	end
 end
 
+local function managePlayerIcon()
+	local playerIconId: string? do
+		local success, err = pcall(function()
+			playerIconId = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.AvatarBust, Enum.ThumbnailSize.Size150x150)
+		end)
+	end
+	profileMainFrame:FindFirstChild("ProfileView"):FindFirstChild("Player"):FindFirstChild("Player"):FindFirstChild("Icon").Image = playerIconId or ""
+end
+
 local function manageProfileFrame(tempScope: Fusion.Scope, mainFrame: Frame)
 	scope = tempScope
+	
+	trove = Trove.new()
+	table.insert(scope, trove)
 	
 	playerDataService = Knit.GetService("PlayerDataService")
 	menuController = Knit.GetController("MenuController")
@@ -125,10 +145,15 @@ local function manageProfileFrame(tempScope: Fusion.Scope, mainFrame: Frame)
 	
 	profileMainFrame = mainFrame:FindFirstChild("Profile"):FindFirstChild("Main")
 	
-	manageViewingOwnProfile()
-	manageBio()
+	if player:GetAttribute("ProfileLoaded") then
+		task.spawn(manageSettings)
+	else
+		settingsService.SettingsLoaded:Connect(task.spawn, manageSettings)
+	end
 	
-	settingsService.SettingsLoaded:Connect(manageSettings)
+	task.spawn(manageViewingOwnProfile)
+	task.spawn(managePlayerIcon)
+	task.spawn(manageBio)	
 end
 
 return manageProfileFrame

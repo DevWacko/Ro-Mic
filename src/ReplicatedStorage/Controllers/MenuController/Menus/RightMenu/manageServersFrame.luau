@@ -111,30 +111,49 @@ local function manageServersFrame(tempScope: Fusion.Scope, mainFrame: Frame, sen
 		return templates
 	end
 	
-	local filterButtonSelected: Fusion.Value<TextButton> = scope:Value(nil)
-	scope:Observer(filterButtonSelected):onChange(function()
-		if peek(filterButtonSelected).Name == "Ascending" then
+	local serverFilterDropdownButton = serversNavigateFrame:FindFirstChild("Lower"):FindFirstChild("ServerFilter")
+	
+	local filterButtons do
+		filterButtons = {}
+		for _, filterButton: TextButton? in serverFilterDropdownButton:FindFirstChild("Filter Dropdown"):GetChildren() do
+			if not filterButton:IsA("TextButton") then
+				continue
+			end
+			table.insert(filterButtons, filterButton)
+		end
+	end
+	
+	local filterButtonSelected: Fusion.Value<TextButton> do
+		local default: TextButton?
+		for _, filterButton in filterButtons do
+			if filterButton:GetAttribute("Default") == true then
+				default = filterButton
+			end
+		end
+		filterButtonSelected = scope:Value(default)
+	end
+	scope:Observer(filterButtonSelected):onBind(function()
+		local filterButton: TextButton? = peek(filterButtonSelected)
+		if filterButton then
+			serverFilterDropdownButton:FindFirstChild("Selected"):FindFirstChild("Filter").Text = filterButton:GetAttribute("Text") or "-"
+		end
+		
+		if filterButton.Name == "Ascending" then
 			for temp, info in getTemplatesWithData() do
 				temp.LayoutOrder = 1 - #info.Players
 			end
-		elseif peek(filterButtonSelected).Name == "Descending" then
+		elseif filterButton.Name == "Descending" then
 			for temp, info in getTemplatesWithData() do
 				temp.LayoutOrder = #info.Players
 			end
-		elseif peek(filterButtonSelected).Name == "Relevant" then
+		elseif filterButton.Name == "Relevant" then
 			for temp, _ in getTemplatesWithData() do
 				temp.LayoutOrder = math.random(1, 100)
 			end
 		end
 	end)
 	
-	for _, filterButton: TextButton? in serversNavigateFrame:FindFirstChild("Lower"):FindFirstChild("ServerFilter"):FindFirstChild("Filter Dropdown"):GetChildren() do
-		if not filterButton:IsA("TextButton") then
-			continue
-		end
-		if filterButton.Name == RightMenuData.Servers.DEFAULT_FILTER_TYPE then
-			filterButtonSelected:set(filterButton)
-		end
+	for _, filterButton: TextButton in filterButtons do
 		scope:Hydrate(filterButton) {
 			BackgroundColor3 = scope:Computed(function(use: Fusion.Use)
 				return use(filterButtonSelected) == filterButton and Color3.fromRGB(61, 61, 61) or Color3.fromRGB(232, 232, 232)

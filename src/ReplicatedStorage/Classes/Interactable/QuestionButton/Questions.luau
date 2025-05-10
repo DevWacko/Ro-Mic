@@ -170,9 +170,9 @@ local function Questions(self)
 				Name = "Question" .. #currentQuestions,
 				Parent = questionBoardMain,
 				
-				--[[ Size = questionScope:Spring(questionScope:Computed(function(use)
+				Size = questionScope:Spring(questionScope:Computed(function(use)
 					return use(shown) and startSize or UDim2.new()
-				end), 15, 0.5), ]]
+				end), 15, 0.5),
 				
 				Text = addedQuestion,
 				TextTransparency = questionScope:Tween(questionScope:Computed(function(use)

@@ -46,7 +46,6 @@ function MenuController:OpenMenu(menuName: string, ...)
 	menus[id].shown:set(true)
 	
 	self:CallMenuFunction(menuName, "shown", ...)
-	self.MenuOpened:Fire(menuName)
 end
 
 function MenuController:CloseMenu(menuName: string, ...)
@@ -57,7 +56,6 @@ function MenuController:CloseMenu(menuName: string, ...)
 	end
 	
 	self:CallMenuFunction(menuName, "closed", ...)
-	self.MenuClosed:Fire(menuName)
 end
 
 function MenuController:CallMenuFunction(menuName: string, functionKey: string, ...)
@@ -160,6 +158,13 @@ function MenuController:ManageNewMenu(taggedMenu: ScreenGui)
 		Enabled = tempScope:Computed(function(use: Fusion.Use)
 			return use(shown)
 		end),
+		[OnChange("Enabled")] = function()
+			if taggedMenu.Enabled == true then
+				self.MenuOpened:Fire(taggedMenu.Name)
+			elseif taggedMenu.Enabled == false then
+				self.MenuClosed:Fire(taggedMenu.Name)
+			end
+		end
 	}
 	
 	local id = HttpService:GenerateGUID()
@@ -216,8 +221,6 @@ function MenuController:KnitInit()
 		if newId then
 			local menuData = menus[newId]
 			menuData.shown:set(true)
-			
-			self.MenuOpened:Fire(menuData.instance)
 		end
 	end)
 	

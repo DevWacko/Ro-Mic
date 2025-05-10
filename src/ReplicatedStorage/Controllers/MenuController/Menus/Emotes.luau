@@ -66,7 +66,7 @@ local function manageMainMenu()
 	end
 end
 
-local function manageRobloxDancesFrame()
+--[[ local function manageRobloxDancesFrame()
 	for _, danceButton: GuiButton in robloxDancesFrame:GetChildren() do
 		if not danceButton:IsA("GuiButton") then
 			continue
@@ -93,7 +93,7 @@ local function manageRobloxDancesFrame()
 			end)
 		end))
 	end
-end
+end ]]
 
 local function manageNewChar(newChar: Model)
 	char = newChar
@@ -124,7 +124,7 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 		framesShown[frame] = shown
 	end
 	manageMainMenu()
-	manageRobloxDancesFrame()
+	--manageRobloxDancesFrame()
 end
 
 return Emotes
