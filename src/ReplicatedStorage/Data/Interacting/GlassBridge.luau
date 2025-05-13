@@ -1,6 +1,6 @@
 local GlassBridge = {}
 
-GlassBridge.RESET_COOLDOWN = 30
+GlassBridge.RESET_COOLDOWN = 60
 GlassBridge.PLATFORM_RESPAWN_COOLDOWN = 12
 
 GlassBridge.CORRECT_PLATFORM_PER_JUMP = 1

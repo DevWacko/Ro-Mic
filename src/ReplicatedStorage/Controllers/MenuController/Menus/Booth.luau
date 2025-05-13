@@ -79,25 +79,6 @@ Booth.init = function()
 	interactingService = Knit.GetService("InteractingService")
 end
 
-local function manageDropdown(
-	toggleButton: GuiButton,
-	dropdown: CanvasGroup,
-	shown: Fusion.Value<boolean>,
-	showSize: UDim2, hideSize: UDim2
-)
-	table.insert(tempScope, toggleButton.MouseButton1Click:Connect(function()
-		shown:set(not peek(shown))
-	end))
-	tempScope:Hydrate(dropdown) {
-		--[[ GroupTransparency = tempScope:Tween(tempScope:Computed(function(use: Fusion.Use)
-			return use(shown) and 0 or 1
-		end), TweenInfo.new(0.5)), ]]
-		Size = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)
-			return use(shown) and showSize or hideSize
-		end), 25, 0.8),
-	}
-end
-
 local function manageFonts()
 	local shownValues: { [string]: Fusion.Value<boolean> } = {
 		["Fonts"] = tempScope:Value(false),

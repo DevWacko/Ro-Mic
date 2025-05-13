@@ -26,15 +26,12 @@ local mainFrame: Frame
 local mainMenu: ScrollingFrame
 local robloxDancesFrame: ScrollingFrame
 
-local animationService
-
 local player = Players.LocalPlayer
 local char: Model?
 local hum: Humanoid?
 local animator: Animator?
 
 Emotes.init = function()
-	animationService = Knit.GetService("AnimationService")
 end
 
 Emotes.shown = function(menu: ScreenGui, ...)
