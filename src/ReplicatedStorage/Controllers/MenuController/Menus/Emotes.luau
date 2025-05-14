@@ -24,7 +24,9 @@ local scope = Fusion:scoped()
 local framesShown: { [GuiObject]: Fusion.Value<boolean> } = {}
 
 local categoryAnimations: { [Folder]: { Animation } } = {}
-local tracks: { AnimationTrack } = {}
+local tracks: { [string]: { [string]: AnimationTrack } } = {}
+local currentTrack: AnimationTrack?
+local currentSpeed: number?
 
 local mainFrame: Frame
 local mainMenu: ScrollingFrame
@@ -36,44 +38,12 @@ local hum: Humanoid?
 local animator: Animator?
 
 Emotes.init = function()
-	for _, categoryFolder: Folder in EmotesFolder:GetChildren() do
-		local containerFrame: GuiObject in mainMenu:FindFirstChild(categoryFolder.Name)
-		if containerFrame == nil then
-			continue
-		end
-		local category = {}
-		for _, animation: Animation in categoryFolder:GetChildren() do
-			local animButton: GuiButton? = containerFrame:FindFirstChild(animation.Name)
-			if not animButton then
-				continue
-			end
-			table.insert(category, animation)
-		end
-		categoryAnimations[categoryFolder] = category
-	end
 	
-	local function charAdded(addedChar: Model)
-		hum = addedChar:WaitForChild("Humanoid")
-		if hum then
-			animator = hum:FindFirstChildWhichIsA("Animator")
-			for _, anims in categoryAnimations do
-				for _, anim in anims do
-					table.insert(tracks, animator:LoadAnimation(anim))
-				end
-			end
-		end
-	end
-	table.insert(scope, player.CharacterAdded:Connect(charAdded))
-	if player.Character then
-		charAdded(player.Character)
-	end
 end
 
-Emotes.shown = function(menu: ScreenGui, ...)
-	for categoryFold, _ in categoryAnimations do
-		
-	end
-end
+--[[ Emotes.shown = function(menu: ScreenGui, ...)
+	
+end ]]
 
 local function setFrame(frameName: string)
 	for otherMenuName, shown in pairs(framesShown) do
@@ -100,38 +70,65 @@ local function manageMainMenu()
 	end
 end
 
---[[ local function manageRobloxDancesFrame()
-	for _, danceButton: GuiButton in robloxDancesFrame:GetChildren() do
-		if not danceButton:IsA("GuiButton") then
+local function manageAnimations()
+	for _, categoryFolder: Folder in EmotesFolder:GetChildren() do
+		local containerFrame: GuiObject = mainMenu:FindFirstChild(categoryFolder.Name)
+		if containerFrame == nil then
 			continue
 		end
-		table.insert(scope, danceButton.MouseButton1Click:Connect(function()
-			if not animator then
-				return
-			end
-			
-			local trackPath = Data.RobloxDances[tonumber(danceButton.Name)]
-			local tracks = animator:GetPlayingAnimationTracks()
-			
-			if #tracks == 0 then
-				animationService:PlayAnimationAttempt(trackPath, true)
-				return
-			end
-			
-			animationService:TrackIsPlaying(trackPath):andThen(function(isPlaying: boolean?)
-				if not isPlaying then
-					animationService:PlayAnimationAttempt(trackPath, true)
-				else
-					animationService:StopAnimationAttempt(trackPath)
-				end
-			end)
-		end))
+		local category = {}
+		for _, animation: Animation in categoryFolder:GetChildren() do
+			table.insert(category, animation)
+		end
+		categoryAnimations[categoryFolder] = category
 	end
-end ]]
-
-
-local function manageAnimations()
 	
+	local function charAdded(addedChar: Model)
+		hum = addedChar:WaitForChild("Humanoid")
+		if hum then
+			animator = hum:FindFirstChildWhichIsA("Animator")
+			for categoryFold, anims in categoryAnimations do
+				local categoryTracks = {}
+				for _, anim in anims do
+					categoryTracks[anim.Name] = animator:LoadAnimation(anim)
+				end
+				tracks[categoryFold.Name] = categoryTracks
+			end
+		end
+		
+		for categoryName, categoryTracks in tracks do
+			local categoryContainer: GuiObject? = mainFrame:FindFirstChild(categoryName)
+			if categoryContainer == nil then
+				continue
+			end
+			for trackName, track in categoryTracks do
+				local button: GuiButton? = categoryContainer:FindFirstChild(trackName)
+				if button == nil then
+					continue
+				end
+				table.insert(scope, button.MouseButton1Click:Connect(function()
+					if animator == nil or track == nil then return end
+					if not track.IsPlaying then
+						for _, oldTracks in tracks do
+							for _, oldTrack in oldTracks do
+								oldTrack:Stop()
+							end
+						end
+						track:Play()
+						currentTrack = track
+						currentTrack:AdjustSpeed(currentSpeed)
+					elseif track.IsPlaying then
+						track:Stop()
+						currentTrack = nil
+					end
+				end))
+			end
+		end
+	end
+	table.insert(scope, player.CharacterAdded:Connect(charAdded))
+	if player.Character then
+		charAdded(player.Character)
+	end
 end
 
 Emotes.menuLoaded = function(menu: ScreenGui)
@@ -142,7 +139,7 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 	robloxDancesFrame = mainFrame:FindFirstChild("RobloxDances")
 	
 	for _, frame: Frame | ScrollingFrame in mainFrame:GetChildren() do
-		if not frame:IsA("Frame") and not frame:IsA("ScrollingFrame") then
+		if not frame:IsA("ScrollingFrame") then
 			continue
 		end
 		local shown = scope:Value(frame.Name == Data.Defaults.START_MENU_NAME)
@@ -151,9 +148,21 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 		end)
 		framesShown[frame] = shown
 	end
+	
+	table.insert(scope, mainMenu:GetPropertyChangedSignal("Visible"):Connect(function()
+		mainFrame:FindFirstChild("DanceSpeed").Visible = mainMenu.Visible
+	end))
+	
+	local bar = mainFrame:FindFirstChild("DanceSpeed"):FindFirstChild("Bar")
+	table.insert(scope, bar:GetAttributeChangedSignal("Value"):Connect(function()
+		--currentTrack.Speed = 
+		local speed = bar:GetAttribute("Value")
+		currentTrack:AdjustSpeed(speed)
+		currentSpeed = speed
+	end))
+	
 	manageMainMenu()
 	manageAnimations()
-	--manageRobloxDancesFrame()
 end
 
 return Emotes

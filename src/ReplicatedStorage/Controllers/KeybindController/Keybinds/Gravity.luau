@@ -27,6 +27,7 @@ Gravity.init = function()
 		if not char then
 			return
 		end
+		char:SetAttribute("Floating", peek(floating))
 		workspace.Gravity = peek(floating) and 1 or gravity
 	end)
 	

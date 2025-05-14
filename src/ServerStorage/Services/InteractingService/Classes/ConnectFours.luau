@@ -205,6 +205,7 @@ function ConnectFours.new(model: Model)
 					end
 					self:ResetGame()
 				else
+					print(1)
 					self:NextTurn()
 				end
 			end
@@ -273,8 +274,8 @@ function ConnectFours:ResetGame()
 	self.GameInProgress = false
 	self.TurnIndex = self.Data.START_PLAYER
 	
-	self:DisconnectCountdown()
 	self:ResetCountdown()
+	self:DisconnectCountdown()
 	
 	for _, slots in self.Board do
 		for i, _ in slots do

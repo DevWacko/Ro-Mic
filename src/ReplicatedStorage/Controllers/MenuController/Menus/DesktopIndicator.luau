@@ -1,9 +1,12 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
 
 local scoped, peek = Fusion.scoped, Fusion.peek
+
+local player = Players.LocalPlayer
 
 -- Main Module --
 local DesktopIndicator = { MenuName = "DesktopIndicator" }
@@ -22,6 +25,11 @@ DesktopIndicator.menuLoaded = function(menu: ScreenGui)
 	
 	local scope = scoped(Fusion, {})
 	
+	local char: Model? = player.Character
+	table.insert(scope, player.CharacterAdded:Connect(function(addedChar)
+		char = addedChar
+	end))
+	
 	local indicatorSizes = {}
 	for _, indicatorFrame in mainFrame:GetChildren() do
 		local keyString = indicatorFrame:GetAttribute("Keybind")
@@ -30,35 +38,36 @@ DesktopIndicator.menuLoaded = function(menu: ScreenGui)
 		end
 		
 		local size = scope:Value(indicatorFrame.Size)
+		local sizeSpring = scope:Spring(size, 25, 0.7)
 		
 		scope:Hydrate(indicatorFrame) {
-			Size = scope:Spring(size, 25, 0.7)
+			Size = sizeSpring
 		}
 		
 		indicatorSizes[keyString] = {
 			StartSize = indicatorFrame.Size,
-			Size = size,
+			Size = sizeSpring,
 		}
 	end
 	
-	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-		--[[ if gameProcessedEvent then
-			return
-		end ]]
-		local data = indicatorSizes[input.KeyCode.Name]
+	table.insert(scope, char:GetAttributeChangedSignal("Ragdolled"):Connect(function()
+		local data = indicatorSizes.R
 		if data then
-			data.Size:set(data.StartSize - UDim2.fromScale(0.1, 0.1))
+			data.Size:addVelocity(-UDim2.fromScale(0.1, 0.1))
 		end
-	end)
-	UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
-		--[[ if gameProcessedEvent then
-			return
-		end ]]
+	end))
+	table.insert(scope, char:GetAttributeChangedSignal("Floating"):Connect(function()
+		local data = indicatorSizes.F
+		if data then
+			data.Size:addVelocity(-UDim2.fromScale(0.1, 0.1))
+		end
+	end))
+	--[[ UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
 		local data = indicatorSizes[input.KeyCode.Name]
 		if data then
 			data.Size:set(data.StartSize)
 		end
-	end)
+	end) ]]
 end
 
 return DesktopIndicator

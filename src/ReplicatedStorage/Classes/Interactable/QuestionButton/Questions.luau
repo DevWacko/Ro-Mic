@@ -161,7 +161,7 @@ local function Questions(self)
 			
 			local shown = questionScope:Value(false)
 			
-			local label = ReplicatedStorage.Assets.Gui.Templates.Question:Clone()
+			local label: TextLabel = ReplicatedStorage.Assets.Gui.Templates.Question:Clone()
 			label.Text = addedQuestion
 			
 			local startSize = label.Size
@@ -174,7 +174,6 @@ local function Questions(self)
 					return use(shown) and startSize or UDim2.new()
 				end), 15, 0.5),
 				
-				Text = addedQuestion,
 				TextTransparency = questionScope:Tween(questionScope:Computed(function(use)
 					return use(shown) and 0 or 1
 				end), Data.TWEEN_INFO),

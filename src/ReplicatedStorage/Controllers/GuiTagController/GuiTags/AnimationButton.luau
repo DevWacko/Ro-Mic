@@ -14,6 +14,7 @@ local AnimationButton = {
 local tempScopes: { [GuiButton]: Fusion.Scope } = {}
 
 local tracks: { AnimationTrack } = {}
+local track: AnimationTrack?
 
 local player = Players.LocalPlayer
 
