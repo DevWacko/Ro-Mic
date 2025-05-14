@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
+local EmotesFolder = ReplicatedStorage.Assets.Animations.Emotes
 local Packages = ReplicatedStorage.Packages
 
 -- Modules --
@@ -22,6 +23,9 @@ local Emotes = { MenuName = "Emotes" }
 local scope = Fusion:scoped()
 local framesShown: { [GuiObject]: Fusion.Value<boolean> } = {}
 
+local categoryAnimations: { [Folder]: { Animation } } = {}
+local tracks: { AnimationTrack } = {}
+
 local mainFrame: Frame
 local mainMenu: ScrollingFrame
 local robloxDancesFrame: ScrollingFrame
@@ -32,10 +36,43 @@ local hum: Humanoid?
 local animator: Animator?
 
 Emotes.init = function()
+	for _, categoryFolder: Folder in EmotesFolder:GetChildren() do
+		local containerFrame: GuiObject in mainMenu:FindFirstChild(categoryFolder.Name)
+		if containerFrame == nil then
+			continue
+		end
+		local category = {}
+		for _, animation: Animation in categoryFolder:GetChildren() do
+			local animButton: GuiButton? = containerFrame:FindFirstChild(animation.Name)
+			if not animButton then
+				continue
+			end
+			table.insert(category, animation)
+		end
+		categoryAnimations[categoryFolder] = category
+	end
+	
+	local function charAdded(addedChar: Model)
+		hum = addedChar:WaitForChild("Humanoid")
+		if hum then
+			animator = hum:FindFirstChildWhichIsA("Animator")
+			for _, anims in categoryAnimations do
+				for _, anim in anims do
+					table.insert(tracks, animator:LoadAnimation(anim))
+				end
+			end
+		end
+	end
+	table.insert(scope, player.CharacterAdded:Connect(charAdded))
+	if player.Character then
+		charAdded(player.Character)
+	end
 end
 
 Emotes.shown = function(menu: ScreenGui, ...)
-	
+	for categoryFold, _ in categoryAnimations do
+		
+	end
 end
 
 local function setFrame(frameName: string)
@@ -92,10 +129,9 @@ end
 	end
 end ]]
 
-local function manageNewChar(newChar: Model)
-	char = newChar
-	hum = char:WaitForChild("Humanoid")
-	animator = hum:WaitForChild("Animator")
+
+local function manageAnimations()
+	
 end
 
 Emotes.menuLoaded = function(menu: ScreenGui)
@@ -104,11 +140,6 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 	mainFrame = menu:FindFirstChild("Main")
 	mainMenu = mainFrame:FindFirstChild("MainMenu")
 	robloxDancesFrame = mainFrame:FindFirstChild("RobloxDances")
-	
-	table.insert(scope, player.CharacterAdded:Connect(manageNewChar))
-	if player.Character then
-		manageNewChar(player.Character)
-	end
 	
 	for _, frame: Frame | ScrollingFrame in mainFrame:GetChildren() do
 		if not frame:IsA("Frame") and not frame:IsA("ScrollingFrame") then
@@ -121,6 +152,7 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 		framesShown[frame] = shown
 	end
 	manageMainMenu()
+	manageAnimations()
 	--manageRobloxDancesFrame()
 end
 

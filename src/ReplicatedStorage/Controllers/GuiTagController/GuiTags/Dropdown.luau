@@ -69,7 +69,6 @@ Dropdown.taggedObjectAdded = function(taggedObject: GuiButton)
 		if openDB then
 			return
 		end
-		print(taggedObject)
 		shown:set(not peek(shown))
 		taggedObject:SetAttribute("TargetShown", peek(shown))
 	end))

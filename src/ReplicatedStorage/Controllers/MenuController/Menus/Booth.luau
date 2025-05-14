@@ -1,6 +1,7 @@
 -- Services --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 -- Containers --
 local Packages = ReplicatedStorage.Packages
@@ -324,7 +325,37 @@ Booth.menuLoaded = function(menu: ScreenGui)
 	local textBox: TextBox = textArea:FindFirstChild("Frame"):FindFirstChild("TextBox")
 	local text: Fusion.Value<string> = tempScope:Value("")
 	
+	local function HasWeight(fontFamily: string, weight: Enum.FontWeight): boolean
+		local success, info = pcall(function()
+			return TextService:GetFamilyInfoAsync(fontFamily)
+		end)
+	
+		if not success then
+			warn("Error fetching font family:", info)
+			return false
+		end
+	
+		for _, face in info.Faces do
+			if face.Weight == weight then
+				return true
+			end
+		end
+	
+		return false
+	end 
+	
 	local function updateBoard()
+		for _, weightChoiceButton: TextButton? in mainFrame:FindFirstChild("LineWeightDropdown"):FindFirstChild("WeightDropDown"):GetChildren() do
+			local i = tonumber(weightChoiceButton.Name)
+			if not weightChoiceButton:IsA("GuiButton") or i == nil then
+				continue
+			end
+			local weightEnum = BoothsData.BoothStyling.WEIGHTS[i]
+			if weightEnum == nil then
+				continue
+			end
+			weightChoiceButton.Visible = HasWeight(BoothsData.BoothStyling.FONTS[peek(currentIndexes.fontIndex)].Family, weightEnum)
+		end
 		interactingService:InteractAttempt("Booths", "SetTextAttempt",
 			peek(text),
 			peek(currentIndexes.textColorIndex), peek(currentIndexes.strokeColorIndex),
