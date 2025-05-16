@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 
 local Streamable = require(ReplicatedStorage.Packages.Streamable).Streamable
 local Signal = require(ReplicatedStorage.Packages.Signal)
@@ -12,6 +13,28 @@ local Sound = require(ReplicatedStorage.Source.Classes.Sound)
 local peek = Fusion.peek
 
 local Data = require(ReplicatedStorage.Source.Data.Interacting.QuestionGame)
+
+local maxWordsPerLine = 5
+
+local function wrapTextByWords(text, maxWords)
+	local words = string.split(text, " ")
+	local lines = {}
+
+	for i = 1, #words, maxWords do
+		local lineWords = {}
+		for j = i, math.min(i + maxWords - 1, #words) do
+			table.insert(lineWords, words[j])
+		end
+		table.insert(lines, table.concat(lineWords, " "))
+	end
+
+	return table.concat(lines, "\n")
+end
+
+local function updateText(textLabel,text)
+	local wrapped = wrapTextByWords(text, maxWordsPerLine)
+	textLabel.Text = wrapped
+end
 
 local function Questions(self)
 	if self.IsServer then
@@ -48,7 +71,8 @@ local function Questions(self)
 				questionPicked = questions[math.random(1, #questions)]
 			until questionPicked and
 				not table.find(currentQuestionBlacklists[self.QuestionsType], questionPicked)
-				and questions ~= lastQuestion
+				and questionPicked ~= lastQuestion
+				and questionPicked ~= ""
 			table.insert(currentQuestionBlacklists[self.QuestionsType], questionPicked)
 			
 			if #currentQuestionBlacklists[self.QuestionsType] == #questions then
@@ -163,16 +187,27 @@ local function Questions(self)
 			
 			local label: TextLabel = ReplicatedStorage.Assets.Gui.Templates.Question:Clone()
 			label.Text = addedQuestion
+			updateText(label, addedQuestion)
 			
-			local startSize = label.Size
+			local autoSize = label.AbsoluteSize
+			--label.AutomaticSize = Enum.AutomaticSize.None
 			
+			--[[local textSize = TextService:GetTextSize(
+				addedQuestion,
+				label.TextSize,
+				Enum.Font.BuilderSans,
+				Vector2.new(0, math.huge)
+			)]]
+			
+			local textBounds = questionScope:Value(Vector2.zero)
 			local questionLabel = questionScope:Hydrate(label) {
 				Name = "Question" .. #currentQuestions,
 				Parent = questionBoardMain,
 				
 				Size = questionScope:Spring(questionScope:Computed(function(use)
-					return use(shown) and startSize or UDim2.new()
-				end), 15, 0.5),
+					local bounds = use(textBounds)
+					return use(shown) and UDim2.fromOffset(bounds.X, bounds.Y) or UDim2.new()
+				end), 15, 1),
 				
 				TextTransparency = questionScope:Tween(questionScope:Computed(function(use)
 					return use(shown) and 0 or 1
@@ -181,6 +216,9 @@ local function Questions(self)
 					return use(shown) and 0 or 1
 				end), Data.TWEEN_INFO)
 			}
+			textBounds:set(label.AbsoluteSize)
+			label.AutomaticSize = Enum.AutomaticSize.None
+			label.TextScaled = true
 			
 			shown:set(true)
 			
