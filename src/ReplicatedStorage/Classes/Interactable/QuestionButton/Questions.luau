@@ -14,7 +14,7 @@ local peek = Fusion.peek
 
 local Data = require(ReplicatedStorage.Source.Data.Interacting.QuestionGame)
 
-local maxWordsPerLine = 5
+local maxWordsPerLine = 100
 
 local function wrapTextByWords(text, maxWords)
 	local words = string.split(text, " ")

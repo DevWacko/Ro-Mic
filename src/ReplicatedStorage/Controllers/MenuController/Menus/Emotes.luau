@@ -138,6 +138,11 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 	mainMenu = mainFrame:FindFirstChild("MainMenu")
 	robloxDancesFrame = mainFrame:FindFirstChild("RobloxDances")
 	
+	local function checkAnimationSpeedVisible()
+		mainFrame:FindFirstChild("DanceSpeed").Visible = mainFrame:WaitForChild("Dances").Visible
+	end
+	checkAnimationSpeedVisible()
+	
 	for _, frame: Frame | ScrollingFrame in mainFrame:GetChildren() do
 		if not frame:IsA("ScrollingFrame") then
 			continue
@@ -145,17 +150,16 @@ Emotes.menuLoaded = function(menu: ScreenGui)
 		local shown = scope:Value(frame.Name == Data.Defaults.START_MENU_NAME)
 		scope:Observer(shown):onBind(function()
 			frame.Visible = peek(shown)
+			checkAnimationSpeedVisible()
 		end)
 		framesShown[frame] = shown
 	end
 	
-	table.insert(scope, mainMenu:GetPropertyChangedSignal("Visible"):Connect(function()
-		mainFrame:FindFirstChild("DanceSpeed").Visible = mainMenu.Visible
-	end))
-	
 	local bar = mainFrame:FindFirstChild("DanceSpeed"):FindFirstChild("Bar")
 	table.insert(scope, bar:GetAttributeChangedSignal("Value"):Connect(function()
-		--currentTrack.Speed = 
+		if currentTrack == nil then
+			return
+		end
 		local speed = bar:GetAttribute("Value")
 		currentTrack:AdjustSpeed(speed)
 		currentSpeed = speed
