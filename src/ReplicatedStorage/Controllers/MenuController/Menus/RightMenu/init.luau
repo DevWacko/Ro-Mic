@@ -1,6 +1,7 @@
 -- Services --
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
 -- Containers --
 local Packages = ReplicatedStorage:WaitForChild("Packages")
@@ -88,11 +89,7 @@ local function manageMenuToggle()
 	
 	menuIsShown = tempScope:Value(openCloseButton:GetAttribute("ShowingTarget") == nil)
 	tempScope:Observer(menuIsShown):onChange(function()
-		if peek(menuIsShown) then
-			controller:CloseMenu("LeaderboardServiceUI")
-		else
-			controller:OpenMenu("LeaderboardServiceUI")
-		end
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not peek(menuIsShown))
 	end)
 	tempScope:Hydrate(openCloseButton) {
 		Rotation = tempScope:Spring(tempScope:Computed(function(use: Fusion.Use)

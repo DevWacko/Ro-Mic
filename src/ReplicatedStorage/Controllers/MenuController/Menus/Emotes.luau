@@ -41,10 +41,6 @@ Emotes.init = function()
 	
 end
 
---[[ Emotes.shown = function(menu: ScreenGui, ...)
-	
-end ]]
-
 local function setFrame(frameName: string)
 	for otherMenuName, shown in pairs(framesShown) do
 		if otherMenuName.Name == frameName then
@@ -106,6 +102,12 @@ local function manageAnimations()
 				if button == nil then
 					continue
 				end
+				
+				local label = button:FindFirstChildWhichIsA("TextLabel")
+				if label then
+					label.Text = trackName
+				end
+				
 				table.insert(scope, button.MouseButton1Click:Connect(function()
 					if animator == nil or track == nil then return end
 					if not track.IsPlaying then
@@ -114,6 +116,7 @@ local function manageAnimations()
 								oldTrack:Stop()
 							end
 						end
+						print("PLAY ANIMATION")
 						track:Play()
 						currentTrack = track
 						currentTrack:AdjustSpeed(currentSpeed)

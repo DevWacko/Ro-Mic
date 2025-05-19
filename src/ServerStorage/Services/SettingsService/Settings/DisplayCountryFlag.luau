@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Containers --
 local Packages = ReplicatedStorage:FindFirstChild("Packages")
+local Billboards = ReplicatedStorage.Assets.Gui.Billboards
 
 -- Modules --
 local Fusion = require(Packages:FindFirstChild("Fusion"))
@@ -23,6 +24,9 @@ local DisplayCountryFlag = {
 local tempScopes: { [Player]: Fusion.Scope } = {}
 local displayScopes: { [Player]: Fusion.Scope } = {}
 local playersEnabled: { [Player]: Fusion.Value<boolean> } = {}
+
+local overheadInfoBoard: BillboardGui
+local countryLabel: TextLabel
 
 local playerService
 local service
@@ -66,7 +70,10 @@ DisplayCountryFlag.playerAdded = function(player: Player)
 				return
 			end
 			
-			local size = displayScope:Value(UDim2.new())
+			local country = playerService:GetPlayerCountry(player)
+			countryLabel.Text = `[{getFlagEmoji(country)} {country}]`
+			
+			--[[ local size = displayScope:Value(UDim2.new())
 			displayScope:New "BillboardGui" {
 				Name = "CountryFlagDisplay",
 				Parent = attach,
@@ -92,18 +99,28 @@ DisplayCountryFlag.playerAdded = function(player: Player)
 					},
 				},
 			}
-			size:set(UDim2.fromScale(1, 1))
+			size:set(UDim2.fromScale(1, 1)) ]]
 		else
 			displayScope:doCleanup()
 		end
 	end
-	
-	table.insert(tempScope, player.CharacterAdded:Connect(function(char)
-		task.delay(1, setDisplaying, char)
-	end))
-	if player.Character then
+	local function setupBoard(char)
+		overheadInfoBoard = Billboards.OverheadInfo:Clone()
+		countryLabel = overheadInfoBoard:FindFirstChild("Country")
+		
+		overheadInfoBoard:FindFirstChild("DisplayName").Text = player.DisplayName
+		
+		overheadInfoBoard.Parent = char:WaitForChild("Head")
 		setDisplaying(player.Character)
 	end
+	
+	table.insert(tempScope, player.CharacterAdded:Connect(function(char)
+		task.delay(1, setupBoard, char)
+	end))
+	if player.Character then
+		setupBoard(player.Character)
+	end
+	
 	tempScope:Observer(display):onBind(function()
 		setDisplaying(player.Character)
 	end)
