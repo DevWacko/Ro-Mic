@@ -28,10 +28,12 @@ local playersEnabled: { [Player]: Fusion.Value<boolean> } = {}
 local overheadInfoBoard: BillboardGui
 local countryLabel: TextLabel
 
+local countryService
 local playerService
 local service
 
 DisplayCountryFlag.init = function()
+	countryService = require(ReplicatedStorage.Modules.CountryService)
 	playerService = Knit.GetService("PlayerService")
 	service = Knit.GetService("SettingsService")
 end
@@ -70,8 +72,9 @@ DisplayCountryFlag.playerAdded = function(player: Player)
 				return
 			end
 			
-			local country = playerService:GetPlayerCountry(player)
-			countryLabel.Text = `[{getFlagEmoji(country)} {country}]`
+			local country = countryService:GetPlayerCountry(player)
+			print(country)
+			--countryLabel.Text = `[{country.emoji} {country.country}]`
 			
 			--[[ local size = displayScope:Value(UDim2.new())
 			displayScope:New "BillboardGui" {
@@ -101,6 +104,7 @@ DisplayCountryFlag.playerAdded = function(player: Player)
 			}
 			size:set(UDim2.fromScale(1, 1)) ]]
 		else
+			countryLabel.Text = ""
 			displayScope:doCleanup()
 		end
 	end
