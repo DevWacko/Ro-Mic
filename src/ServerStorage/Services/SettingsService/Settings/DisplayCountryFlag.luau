@@ -34,7 +34,6 @@ local service
 
 DisplayCountryFlag.init = function()
 	countryService = require(ReplicatedStorage.Modules.CountryService)
-	playerService = Knit.GetService("PlayerService")
 	service = Knit.GetService("SettingsService")
 end
 
@@ -50,6 +49,7 @@ DisplayCountryFlag.playerAdded = function(player: Player)
 	local tempScope = Fusion:scoped()
 	tempScopes[player] = tempScope
 	
+	print("GET")
 	local display = tempScope:Value(service:CheckSetting(player, "DisplayCountryFlag") or DisplayCountryFlag.DefaultValue)
 	playersEnabled[player] = display
 	
